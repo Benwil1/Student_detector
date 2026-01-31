@@ -1,0 +1,313 @@
+"use client";
+
+import { Check, Copy, Edit3, FileUp, Trash2 } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+
+interface EditorProps {
+  label: string;
+  value: string;
+  onChange?: (val: string) => void;
+  readOnly?: boolean;
+  placeholder?: string;
+  wordCount?: number;
+  score?: string;
+  onClear?: () => void;
+  onScan?: () => void;
+  onEdit?: () => void;
+  onFileUpload?: (file: File) => void;
+  highlightedSentences?: string[];
+}
+
+export const Editor: React.FC<EditorProps> = ({
+  label,
+  value,
+  onChange,
+  readOnly = false,
+  placeholder = "Start typing...",
+  wordCount = 0,
+  score,
+  onClear,
+  onScan,
+  onEdit,
+  onFileUpload,
+  highlightedSentences = [],
+}) => {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [isCopied, setIsCopied] = useState(false);
+
+  useEffect(() => {
+    // Only sync if NOT highlighting, otherwise we handle innerHTML
+    if (highlightedSentences.length === 0 && editorRef.current && editorRef.current.innerText !== value) {
+      editorRef.current.innerText = value;
+    }
+  }, [value, highlightedSentences]);
+
+  const getHighlightedContent = () => {
+    if (!highlightedSentences.length) return value;
+    let html = value;
+    // Escape HTML first to prevent XSS if we were handling raw input, 
+    // but here value is text. We should escape it.
+    html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    highlightedSentences.forEach(sentence => {
+       if (!sentence || sentence.length < 5) return;
+       // Escape sentence for regex
+       const escaped = sentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+       // Replace matching sentence with highlight
+       const regex = new RegExp(`(${escaped})`, 'g');
+       html = html.replace(regex, '<mark class="ai-highlight">$1</mark>');
+    });
+    return html;
+  };
+
+  const handleInput = () => {
+    if (editorRef.current && onChange) {
+      onChange(editorRef.current.innerText);
+    }
+  };
+
+  const handleCopy = async () => {
+    // ... existing handleCopy ...
+    if (!value) return;
+    
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        throw new Error("Clipboard API unavailable");
+      }
+    } catch (err) {
+      // ... existing fallback ...
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.style.position = "fixed"; 
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(textarea);
+    }
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    // Insert text at cursor position, stripping all formatting
+    document.execCommand("insertText", false, text);
+  };
+
+  return (
+    <div className="editor-container">
+      <div className="editor-header">
+        {/* ... header content ... */}
+        <div className="header-left">
+          <span className="label-text">{label}</span>
+          {onFileUpload && (
+            <label className="icon-btn-label">
+              <FileUp size={14} />
+              <span>Upload</span>
+              <input 
+                type="file" 
+                style={{ display: "none" }} 
+                onChange={(e) => e.target.files?.[0] && onFileUpload(e.target.files[0])}
+                accept=".txt,.md,.docx,.pdf"
+              />
+            </label>
+          )}
+        </div>
+        <div className="header-right">
+          <span className="stat-badge">{wordCount} words</span>
+          {score && <span className="score-badge">AI: {score}</span>}
+        </div>
+      </div>
+
+      <div className="editor-wrapper">
+        <div
+          ref={editorRef}
+          contentEditable={!readOnly}
+          onInput={handleInput}
+          onPaste={handlePaste}
+          className="editor-content"
+          data-placeholder={placeholder}
+          spellCheck={false}
+          suppressContentEditableWarning={true}
+          dangerouslySetInnerHTML={
+             highlightedSentences.length > 0 ? { __html: getHighlightedContent() } : undefined
+          }
+        />
+        
+        {/* Actions ... */}
+        <div className="floating-actions">
+          {onScan && (
+            <button className="action-btn" onClick={onScan} title="Scan for AI markers">
+              <Edit3 size={16} />
+            </button>
+          )}
+          {onClear && (
+            <button className="action-btn" onClick={onClear} title="Clear text">
+              <Trash2 size={16} />
+            </button>
+          )}
+          {onEdit && (
+            <button className="action-btn" onClick={onEdit} title="Send to input for editing">
+              <Edit3 size={16} />
+            </button>
+          )}
+          <button 
+            className="action-btn" 
+            onClick={handleCopy} 
+            title="Copy to clipboard"
+            style={isCopied ? { color: 'var(--success)', borderColor: 'var(--success)' } : {}}
+          >
+            {isCopied ? <Check size={16} /> : <Copy size={16} />}
+          </button>
+        </div>
+      </div>
+
+      <style jsx>{`
+        /* ... existing styles ... */
+        .editor-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          min-height: 0;
+        }
+
+        :global(mark.ai-highlight) {
+           background-color: rgba(234, 179, 8, 0.2);
+           color: inherit;
+           border-bottom: 2px solid #eab308;
+           padding: 2px 0;
+        }
+
+        /* ... rest of styles ... */
+
+
+        .editor-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 0.5rem;
+        }
+
+        .header-left, .header-right {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .label-text {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--text-tertiary);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .stat-badge {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+        }
+
+        .score-badge {
+          font-size: 0.75rem;
+          color: var(--primary);
+          background: var(--primary-faint);
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-weight: 600;
+        }
+
+        .editor-wrapper {
+          flex: 1;
+          position: relative;
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          transition: border-color 0.2s;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .editor-wrapper:focus-within {
+          border-color: var(--border-focus);
+          box-shadow: 0 0 0 1px var(--border-focus);
+        }
+
+        .editor-content {
+          flex: 1;
+          padding: 1rem;
+          outline: none;
+          overflow-y: auto;
+          font-family: var(--font-sans);
+          font-size: 0.95rem;
+          line-height: 1.6;
+          color: var(--text-primary);
+          white-space: pre-wrap;
+        }
+        
+        .editor-content:empty::before {
+          content: attr(data-placeholder);
+          color: var(--text-tertiary);
+          pointer-events: none;
+        }
+
+        .floating-actions {
+          position: absolute;
+          bottom: 1rem;
+          right: 1rem;
+          display: flex;
+          gap: 0.5rem;
+          transform: translateY(10px);
+          opacity: 0;
+          transition: all 0.2s ease;
+        }
+
+        .editor-wrapper:hover .floating-actions {
+          transform: translateY(0);
+          opacity: 1;
+        }
+
+        .action-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-md);
+          color: var(--text-tertiary);
+          transition: all 0.2s;
+        }
+        .action-btn:hover {
+          color: var(--text-primary);
+          border-color: var(--primary);
+          background: var(--bg-panel);
+        }
+
+        .icon-btn-label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.75rem;
+          color: var(--text-tertiary);
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .icon-btn-label:hover {
+          color: var(--primary);
+        }
+
+        .readonly {
+          background-color: rgba(0,0,0,0.2); 
+        }
+      `}</style>
+    </div>
+  );
+};
