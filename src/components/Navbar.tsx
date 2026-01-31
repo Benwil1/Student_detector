@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, Play, ShieldCheck, Zap } from "lucide-react";
+import Link from "next/link";
 import React from "react";
 
 interface NavbarProps {
@@ -12,12 +13,12 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onHumanize, onScan, onExport }) => {
   return (
     <header className="navbar">
-      <div className="nav-brand">
+      <Link href="/" className="nav-brand">
         <div className="brand-logo">
            <Zap size={20} fill="currentColor" />
         </div>
         <h1>Humanizer<span style={{ color: "var(--primary)" }}>AI</span></h1>
-      </div>
+      </Link>
       
       <div className="nav-actions">
         <button className="nav-btn ghost" onClick={onScan}>
@@ -37,7 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onHumanize, onScan, onExport }) 
       <style jsx>{`
         .navbar {
           height: var(--nav-height);
-          background: rgba(255, 255, 255, 0.8);
+          background: rgba(2, 6, 23, 0.8);
           backdrop-filter: blur(12px);
           border-bottom: 1px solid var(--border-subtle);
           display: flex;
@@ -48,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onHumanize, onScan, onExport }) 
           top: 0;
           left: 0;
           width: 100%;
-          z-index: 1000;
+          z-index: 10001;
         }
 
         .nav-brand {

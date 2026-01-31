@@ -16,6 +16,7 @@ interface EditorProps {
   onEdit?: () => void;
   onFileUpload?: (file: File) => void;
   highlightedSentences?: string[];
+  diffHtml?: string | null;
 }
 
 export const Editor: React.FC<EditorProps> = ({
@@ -31,16 +32,18 @@ export const Editor: React.FC<EditorProps> = ({
   onEdit,
   onFileUpload,
   highlightedSentences = [],
+  diffHtml = null
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
-    // Only sync if NOT highlighting, otherwise we handle innerHTML
-    if (highlightedSentences.length === 0 && editorRef.current && editorRef.current.innerText !== value) {
+    // Only sync if NOT highlighting and NOT diffing, otherwise we handle innerHTML
+    const isShowingHtml = highlightedSentences.length > 0 || !!diffHtml;
+    if (!isShowingHtml && editorRef.current && editorRef.current.innerText !== value) {
       editorRef.current.innerText = value;
     }
-  }, [value, highlightedSentences]);
+  }, [value, highlightedSentences, diffHtml]);
 
   const getHighlightedContent = () => {
     if (!highlightedSentences.length) return value;
@@ -135,6 +138,7 @@ export const Editor: React.FC<EditorProps> = ({
           spellCheck={false}
           suppressContentEditableWarning={true}
           dangerouslySetInnerHTML={
+             diffHtml ? { __html: diffHtml } : 
              highlightedSentences.length > 0 ? { __html: getHighlightedContent() } : undefined
           }
         />
@@ -182,6 +186,22 @@ export const Editor: React.FC<EditorProps> = ({
            color: inherit;
            border-bottom: 2px solid #eab308;
            padding: 2px 0;
+        }
+
+        :global(ins) {
+           background-color: rgba(16, 185, 129, 0.15);
+           color: #10b981;
+           text-decoration: none;
+           border-bottom: 2px solid #10b981;
+           padding: 0 2px;
+        }
+
+        :global(del) {
+           background-color: rgba(239, 68, 68, 0.15);
+           color: #ef4444;
+           text-decoration: line-through;
+           opacity: 0.8;
+           padding: 0 2px;
         }
 
         /* ... rest of styles ... */

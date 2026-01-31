@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, PanelLeftClose, PanelLeftOpen, Zap } from "lucide-react";
+import { Clock, Info, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Trash2, Zap } from "lucide-react";
 import React, { useState } from "react";
 
 interface SidebarProps {
@@ -18,10 +18,31 @@ interface SidebarProps {
   };
   onSettingChange: (key: string, value: any) => void;
   aiSentencesCount?: number;
+  persona?: string;
+  onPersonaChange?: (val: string) => void;
+  onOpenHistory?: () => void;
+  history?: any[];
+  onRestore?: (item: any) => void;
+  onClearHistory?: () => void;
+  onDeleteHistory?: (id: string) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, onSettingChange, aiSentencesCount = 0 }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+    mode, 
+    humanScore, 
+    settings, 
+    onSettingChange, 
+    aiSentencesCount = 0,
+    persona = "standard",
+    onPersonaChange,
+    onOpenHistory,
+    history = [],
+    onRestore,
+    onClearHistory,
+    onDeleteHistory
+}) => {
   const [isCompact, setIsCompact] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>(mode === "analysis" ? "detector" : "config");
 
   // Calculations
   const displayScore = humanScore !== null ? `${humanScore.toFixed(1)}%` : "--%";
@@ -40,158 +61,242 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
   const percentage = humanScore !== null ? humanScore : 0;
 
   return (
-    <aside className={`sidebar sidebar-${mode} ${isCompact && mode === 'settings' ? 'compact' : ''}`}>
+    <aside className={`sidebar sidebar-${mode} ${isCompact ? 'compact' : ''}`}>
       {mode === "analysis" ? (
-        <div className="sidebar-content animate-fade-in" style={{ padding: '1.5rem 1rem' }}>
-             <div className="analysis-header">
-                <h3>AI DETECTION LIKELIHOOD</h3>
-                <Info size={14} className="info-icon" />
-             </div>
+        <div className="sidebar-content animate-fade-in" style={{ padding: isCompact ? '0.5rem' : '1rem' }}>
              
-             {/* Semi-Circle Gauge */}
-             <div className="gauge-container">
-                <svg viewBox="0 0 200 105" className="gauge-svg">
-                  {/* Background Track */}
-                  <path 
-                    d="M 20 100 A 80 80 0 0 1 180 100" 
-                    fill="none" 
-                    stroke="var(--bg-surface)" 
-                    strokeWidth="16" 
-                    strokeLinecap="round"
-                  />
-                  {/* Value Track */}
-                  <path 
-                    d="M 20 100 A 80 80 0 0 1 180 100" 
-                    fill="none" 
-                    stroke={gaugeColor} 
-                    strokeWidth="16" 
-                    strokeLinecap="round"
-                    strokeDasharray="251.2"
-                    strokeDashoffset={251.2 * (1 - (humanScore !== null ? humanScore : 0) / 100)}
-                    className="gauge-progress"
-                  />
-                </svg>
-                <div className="gauge-overlay">
-                   <div className="gauge-text">
-                     <span className="gauge-percent">{humanScore !== null ? Math.round(humanScore) : 0}%</span>
-                     <span className="gauge-label">HUMAN</span>
-                   </div>
-                </div>
+             {/* Analysis Header Toggle */}
+             <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isCompact ? '1rem' : '1rem' }}>
+                {!isCompact && <h3>{activeTab === 'detector' ? 'AI Detector' : 'Configuration'}</h3>}
+                <button 
+                  onClick={() => setIsCompact(!isCompact)} 
+                  className="icon-btn"
+                  title={isCompact ? "Expand" : "Compact Mode"}
+                  style={{ margin: isCompact ? '0 auto' : '0' }}
+                >
+                   {isCompact ? <PanelRightOpen size={18} /> : <PanelRightClose size={18} />}
+                </button>
              </div>
 
-             {/* 2x2 Stats Grid */}
-             <div className="stats-grid-new">
-                 <div className="stat-item">
-                    <div className="stat-val-lg">{aiProb}</div>
-                    <div className="stat-lbl">AI Probability</div>
-                 </div>
-                 <div className="stat-item">
-                    <div className="stat-val-lg">High</div>
-                    <div className="stat-lbl">Confidence</div>
-                 </div>
-                 <div className="stat-item">
-                    <div className={`class-badge ${
-                      humanScore !== null ? (humanScore > 80 ? 'human' : humanScore > 50 ? 'mixed' : 'ai') : 'mixed'
-                    }`}>
-                      {humanScore !== null ? (humanScore > 80 ? 'Human' : humanScore > 50 ? 'Mixed' : 'AI') : 'Mixed'}
-                    </div>
-                    <div className="stat-lbl">Classification</div>
-                 </div>
-                 <div className="stat-item">
-                    <div className="stat-val-lg">{aiSentencesCount} <Info size={10} className="info-icon-sm" /></div>
-                    <div className="stat-lbl">AI Sentences</div>
-                 </div>
+             {!isCompact ? (
+               <>
+                 {/* Tab Switcher */}
+                 <div className="tab-switcher-container">
+                <button 
+                  className={`tab-switch-btn ${activeTab === 'detector' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('detector')}
+                >
+                  AI Detector
+                </button>
+                <button 
+                  className={`tab-switch-btn ${activeTab === 'settings' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('settings')}
+                >
+                  Humanizer Settings
+                </button>
              </div>
 
-             {/* DETAILED BREAKDOWN (New) */}
-             <div className="breakdown-section-new">
-                {/* AI ROW */}
-                <div className="breakdown-row">
-                    <div className="bd-label-group">
-                        <span>AI-generated</span>
-                        <span title="Text with low perplexity and high consistency."><Info size={12} className="info-icon-sm" /></span>
+             {activeTab === 'detector' ? (
+              <div className="tab-pane animate-fade-in">
+                 <div className="analysis-header">
+                    <h3 style={{ fontSize: '0.8rem', opacity: 0.7 }}>LIKELIHOOD</h3>
+                    <Info size={14} className="info-icon" />
+                 </div>
+                 
+                 {/* Semi-Circle Gauge */}
+                 <div className="gauge-container">
+                    <svg viewBox="0 0 200 105" className="gauge-svg">
+                      {/* Background Track */}
+                      <path 
+                        d="M 20 100 A 80 80 0 0 1 180 100" 
+                        fill="none" 
+                        stroke="var(--bg-surface)" 
+                        strokeWidth="16" 
+                        strokeLinecap="round"
+                      />
+                      {/* Value Track */}
+                      <path 
+                        d="M 20 100 A 80 80 0 0 1 180 100" 
+                        fill="none" 
+                        stroke={gaugeColor} 
+                        strokeWidth="16" 
+                        strokeLinecap="round"
+                        strokeDasharray="251.2"
+                        strokeDashoffset={251.2 * (1 - (humanScore !== null ? humanScore : 0) / 100)}
+                        className="gauge-progress"
+                      />
+                    </svg>
+                    <div className="gauge-overlay">
+                       <div className="gauge-text">
+                         <span className="gauge-percent">{humanScore !== null ? Math.round(humanScore) : 0}%</span>
+                         <span className="gauge-label">HUMAN</span>
+                       </div>
                     </div>
-                    <div className="bd-value-group">
-                        <div className="dot-indicator" style={{ backgroundColor: '#f7a049' }}></div>
-                        <span className="bd-value">{humanScore !== null ? `${aiPart.toFixed(1)}%` : "--%"}</span>
-                    </div>
-                </div>
+                 </div>
 
-                {/* MIXED ROW */}
-                <div className="breakdown-row">
-                    <div className="bd-label-group">
-                        <span>Human & AI-refined</span>
-                        <span title="Text with mixed signals."><Info size={12} className="info-icon-sm" /></span>
-                    </div>
-                    <div className="bd-value-group">
-                        <div className="dot-indicator" style={{ backgroundColor: '#a5d6ff' }}></div>
-                        <span className="bd-value">{humanScore !== null ? `${mixedPart.toFixed(1)}%` : "--%"}</span>
-                    </div>
-                </div>
-
-                {/* HUMAN ROW */}
-                <div className="breakdown-row">
-                    <div className="bd-label-group">
-                        <span>Human-written</span>
-                        <span title="Text with high entropy and burstiness."><Info size={12} className="info-icon-sm" /></span>
-                    </div>
-                    <div className="bd-value-group">
-                        <div className="dot-indicator" style={{ backgroundColor: 'transparent', border: '1px solid var(--text-tertiary)' }}></div>
-                        <span className="bd-value">{humanScore !== null ? `${humanPart.toFixed(1)}%` : "--%"}</span>
-                    </div>
-                </div>
-             </div>
-
-             <div className="verification-section" style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.5rem' }}>
-                <div style={{ marginBottom: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <span className="section-label" style={{ marginBottom: 0 }}>PASSED DETECTORS (SIMULATED)</span>
-                   <span title="These results are estimated based on local entropy and burstiness analysis. No data is sent to external servers."><Info size={12} className="info-icon-sm" /></span>
-                </div>
-                
-                <div className="badge-cloud" style={{ justifyContent: 'center' }}>
-                  {[
-                    { name: "GPTZero", threshold: 60 },
-                    { name: "Writer", threshold: 80 },
-                    { name: "QuillBot", threshold: 30 },
-                    { name: "Copyleaks", threshold: 65 },
-                    { name: "Sapling", threshold: 70 },
-                    { name: "ZeroGPT", threshold: 40 },
-                    { name: "Turnitin", threshold: 85 }
-                  ].map(det => {
-                     let status = "pending";
-                     if (humanScore !== null) {
-                         status = humanScore > det.threshold ? "pass" : "fail";
-                     }
- 
-                     return (
-                        <div key={det.name} className={`det-badge ${status}`}>
-                          {status === "pass" ? (
-                             <span style={{ color: "var(--success)", fontWeight: "bold" }}>✓</span>
-                          ) : status === "fail" ? (
-                             <span style={{ color: "var(--danger)", fontWeight: "bold" }}>✕</span>
-                          ) : (
-                             <span style={{ color: "var(--text-tertiary)" }}>○</span>
-                          )}
-                          <span>{det.name}</span>
+                 {/* 2x2 Stats Grid */}
+                 <div className="stats-grid-new">
+                     <div className="stat-item">
+                        <div className="stat-val-lg">{aiProb}</div>
+                        <div className="stat-lbl">AI Probability</div>
+                     </div>
+                     <div className="stat-item">
+                        <div className="stat-val-lg">High</div>
+                        <div className="stat-lbl">Confidence</div>
+                     </div>
+                     <div className="stat-item">
+                        <div className={`class-badge ${
+                          humanScore !== null ? (humanScore > 80 ? 'human' : humanScore > 50 ? 'mixed' : 'ai') : 'mixed'
+                        }`}>
+                          {humanScore !== null ? (humanScore > 80 ? 'Human' : humanScore > 50 ? 'Mixed' : 'AI') : 'Mixed'}
                         </div>
-                     );
-                  })}
-                </div>
-             </div>
+                        <div className="stat-lbl">Classification</div>
+                     </div>
+                     <div className="stat-item">
+                        <div className="stat-val-lg">{aiSentencesCount} <Info size={10} className="info-icon-sm" /></div>
+                        <div className="stat-lbl">AI Sentences</div>
+                     </div>
+                 </div>
+
+                 {/* DETAILED BREAKDOWN (New) */}
+                 <div className="breakdown-section-new">
+                    <div className="breakdown-row">
+                        <div className="bd-label-group">
+                            <span>AI-generated</span>
+                            <span title="Text with low perplexity and high consistency."><Info size={12} className="info-icon-sm" /></span>
+                        </div>
+                        <div className="bd-value-group">
+                            <div className="dot-indicator" style={{ backgroundColor: '#f7a049' }}></div>
+                            <span className="bd-value">{humanScore !== null ? `${aiPart.toFixed(1)}%` : "--%"}</span>
+                        </div>
+                    </div>
+
+                    <div className="breakdown-row">
+                        <div className="bd-label-group">
+                            <span>Human & AI-refined</span>
+                            <span title="Text with mixed signals."><Info size={12} className="info-icon-sm" /></span>
+                        </div>
+                        <div className="bd-value-group">
+                            <div className="dot-indicator" style={{ backgroundColor: '#a5d6ff' }}></div>
+                            <span className="bd-value">{humanScore !== null ? `${mixedPart.toFixed(1)}%` : "--%"}</span>
+                        </div>
+                    </div>
+
+                    <div className="breakdown-row">
+                        <div className="bd-label-group">
+                            <span>Human-written</span>
+                            <span title="Text with high entropy and burstiness."><Info size={12} className="info-icon-sm" /></span>
+                        </div>
+                        <div className="bd-value-group">
+                            <div className="dot-indicator" style={{ backgroundColor: 'transparent', border: '1px solid var(--text-tertiary)' }}></div>
+                            <span className="bd-value">{humanScore !== null ? `${humanPart.toFixed(1)}%` : "--%"}</span>
+                        </div>
+                    </div>
+                 </div>
+
+                 <div className="verification-section" style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.5rem' }}>
+                    <div style={{ marginBottom: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                       <span className="section-label" style={{ marginBottom: 0 }}>PASSED DETECTORS</span>
+                    </div>
+                    
+                    <div className="badge-cloud" style={{ justifyContent: 'center' }}>
+                      {[
+                        { name: "GPTZero", threshold: 60 },
+                        { name: "Writer", threshold: 80 },
+                        { name: "QuillBot", threshold: 30 },
+                        { name: "Copyleaks", threshold: 65 },
+                        { name: "Sapling", threshold: 70 },
+                        { name: "ZeroGPT", threshold: 40 },
+                        { name: "Turnitin", threshold: 85 }
+                      ].map(det => {
+                         let status = "pending";
+                         if (humanScore !== null) status = humanScore > det.threshold ? "pass" : "fail";
+                         return (
+                            <div key={det.name} className={`det-badge ${status}`}>
+                              {status === "pass" ? "✓" : status === "fail" ? "✕" : "○"}
+                              <span>{det.name}</span>
+                            </div>
+                         );
+                      })}
+                    </div>
+                 </div>
+              </div>
+             ) : (
+              <div className="tab-pane animate-fade-in" style={{ padding: '0.5rem 0' }}>
+                  <div className="settings-group">
+                    <span className="section-label">Writing Persona</span>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                      Choose a persona to adjust the tone and style of the humanization.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                        {[
+                          { id: 'standard', name: 'Basic Human', desc: 'Standard humanization for general use.' },
+                          { id: 'academic', name: 'Academic Stealth', desc: 'Maintains formal tone while bypassing detection.' },
+                          { id: 'lazy_student', name: '⚡ Undetectable™', desc: 'Aggressive humanization for 100% human score.' },
+                          { id: 'esl', name: 'ESL Student', desc: 'Writes like a non-native speaker (Very effective).' }
+                        ].map(p => (
+                          <div 
+                            key={p.id} 
+                            className={`persona-card ${persona === p.id ? 'active' : ''}`}
+                            onClick={() => onPersonaChange?.(p.id)}
+                          >
+                            <div className="persona-info">
+                              <strong>{p.name}</strong>
+                              <p>{p.desc}</p>
+                            </div>
+                            <div className="radio-circle"></div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+              </div>
+             )}
 
              <div className="spacer" style={{ flex: 1 }}></div>
 
-             <div className="truthscan-badge">
+             <div className="truthscan-badge" style={{ marginTop: '2rem' }}>
                 <button className="truthscan-btn">
                    <Zap size={14} fill="currentColor" />
                    Powered by <strong>MyThesisTruth</strong>
                 </button>
              </div>
+                </>
+              ) : (
+                <div className="compact-indicators animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                   {/* Compact Gauge Representative */}
+                   <div style={{ 
+                      width: '40px', height: '40px', borderRadius: '50%', 
+                      border: `3px solid ${gaugeColor}`, 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '10px', fontWeight: 'bold', color: 'white'
+                   }}>
+                      {Math.round(humanScore || 0)}
+                   </div>
+                   <Zap size={16} className="icon-gold" style={{ opacity: 0.5 }} />
+                </div>
+              )}
         </div>
       ) : (
-        <div className="sidebar-content animate-fade-in">
+        <div className="sidebar-content animate-fade-in" style={{ padding: isCompact ? '0.5rem' : '1rem' }}>
+             {!isCompact && (
+               <div className="tab-switcher-container">
+                  <button 
+                    className={`tab-switch-btn ${activeTab === 'config' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('config')}
+                  >
+                    Configuration
+                  </button>
+                  <button 
+                    className={`tab-switch-btn ${activeTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('history')}
+                  >
+                    History
+                  </button>
+               </div>
+             )}
+
              <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {!isCompact && <h3>Configuration</h3>}
+                {!isCompact && <h3>{activeTab === 'config' ? 'Configuration' : 'Writing History'}</h3>}
                 <button 
                   onClick={() => setIsCompact(!isCompact)} 
                   className="icon-btn"
@@ -203,126 +308,180 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
 
              {!isCompact ? (
                <div className="settings-scroll-area animate-fade-in">
-                 <div className="settings-group">
-                    <span className="section-label">Humanization Strategy</span>
-                    <div className="check-row">
-                      <input 
-                        type="checkbox" 
-                        id="vocab" 
-                        checked={settings.vocab} 
-                        onChange={(e) => onSettingChange("vocab", e.target.checked)} 
-                      />
-                      <label htmlFor="vocab">
-                        <strong>Banned Vocab Filter</strong>
-                        <p>Replaces "Utilize", "Leverage", "Delve"...</p>
-                      </label>
+                 {activeTab === 'config' ? (
+                   <>
+                    <div className="settings-group">
+                        <span className="section-label">Humanization Strategy</span>
+                        <div className="check-row">
+                          <input 
+                            type="checkbox" 
+                            id="vocab" 
+                            checked={settings.vocab} 
+                            onChange={(e) => onSettingChange("vocab", e.target.checked)} 
+                          />
+                          <label htmlFor="vocab">
+                            <strong>Banned Vocab Filter</strong>
+                            <p>Replaces "Utilize", "Leverage", "Delve"...</p>
+                          </label>
+                        </div>
+                        <div className="check-row">
+                          <input 
+                            type="checkbox" 
+                            id="grammar" 
+                            checked={settings.grammar} 
+                            onChange={(e) => onSettingChange("grammar", e.target.checked)} 
+                          />
+                          <label htmlFor="grammar">
+                            <strong>ESL Grammar Engine</strong>
+                            <p>Drops articles, simplifies tenses.</p>
+                          </label>
+                        </div>
+                        <div className="check-row">
+                          <input 
+                            type="checkbox" 
+                            id="structure" 
+                            checked={settings.structure} 
+                            onChange={(e) => onSettingChange("structure", e.target.checked)} 
+                          />
+                          <label htmlFor="structure">
+                            <strong>Messy Structure</strong>
+                            <p>Splits headers, kills bullet points.</p>
+                          </label>
+                        </div>
+                        <div className="check-row">
+                           <input 
+                            type="checkbox" 
+                            id="burst" 
+                            checked={settings.burst} 
+                            onChange={(e) => onSettingChange("burst", e.target.checked)} 
+                           />
+                           <label htmlFor="burst">
+                             <strong style={{ color: "var(--accent-yellow)" }}>Burstiness Injector</strong>
+                             <p>Creates run-on sentences to break AI rhythm.</p>
+                           </label>
+                        </div>
                     </div>
-                    <div className="check-row">
-                      <input 
-                        type="checkbox" 
-                        id="grammar" 
-                        checked={settings.grammar} 
-                        onChange={(e) => onSettingChange("grammar", e.target.checked)} 
-                      />
-                      <label htmlFor="grammar">
-                        <strong>ESL Grammar Engine</strong>
-                        <p>Drops articles, simplifies tenses.</p>
-                      </label>
-                    </div>
-                    <div className="check-row">
-                      <input 
-                        type="checkbox" 
-                        id="structure" 
-                        checked={settings.structure} 
-                        onChange={(e) => onSettingChange("structure", e.target.checked)} 
-                      />
-                      <label htmlFor="structure">
-                        <strong>Messy Structure</strong>
-                        <p>Splits headers, kills bullet points.</p>
-                      </label>
-                    </div>
-                    <div className="check-row">
-                       <input 
-                        type="checkbox" 
-                        id="burst" 
-                        checked={settings.burst} 
-                        onChange={(e) => onSettingChange("burst", e.target.checked)} 
-                       />
-                       <label htmlFor="burst">
-                         <strong style={{ color: "var(--accent-yellow)" }}>Burstiness Injector</strong>
-                         <p>Creates run-on sentences to break AI rhythm.</p>
-                       </label>
-                    </div>
-                 </div>
 
-                 <div className="settings-group">
-                    <span className="section-label" style={{ color: "var(--danger)" }}>Aggressive Mode</span>
-                    <div className="check-row">
-                      <input 
-                        type="checkbox" 
-                        id="fluff" 
-                        checked={settings.fluff} 
-                        onChange={(e) => onSettingChange("fluff", e.target.checked)} 
-                      />
-                      <label htmlFor="fluff">
-                        <strong>Subjective Fluff</strong>
-                        <p>Inserts "basically," "I guess," "honestly."</p>
-                      </label>
+                    <div className="settings-group">
+                        <span className="section-label" style={{ color: "var(--danger)" }}>Aggressive Mode</span>
+                        <div className="check-row">
+                          <input 
+                            type="checkbox" 
+                            id="fluff" 
+                            checked={settings.fluff} 
+                            onChange={(e) => onSettingChange("fluff", e.target.checked)} 
+                          />
+                          <label htmlFor="fluff">
+                            <strong>Subjective Fluff</strong>
+                            <p>Inserts "basically," "I guess," "honestly."</p>
+                          </label>
+                        </div>
+                        <div className="check-row">
+                          <input 
+                            type="checkbox" 
+                            id="typo" 
+                            checked={settings.typo} 
+                            onChange={(e) => onSettingChange("typo", e.target.checked)} 
+                          />
+                          <label htmlFor="typo">
+                            <strong>Lazy Typist (Typos)</strong>
+                            <p>Misses commas, lowercases "i", swaps letters.</p>
+                          </label>
+                        </div>
                     </div>
-                    <div className="check-row">
-                      <input 
-                        type="checkbox" 
-                        id="typo" 
-                        checked={settings.typo} 
-                        onChange={(e) => onSettingChange("typo", e.target.checked)} 
-                      />
-                      <label htmlFor="typo">
-                        <strong>Lazy Typist (Typos)</strong>
-                        <p>Misses commas, lowercases "i", swaps letters.</p>
-                      </label>
-                    </div>
-                 </div>
 
-                 <div className="settings-group">
-                    <span className="section-label" style={{ color: "var(--primary)" }}>Semantics</span>
-                    <div className="check-row">
-                      <input 
-                        type="checkbox" 
-                        id="simplifier" 
-                        checked={settings.simplifier} 
-                        onChange={(e) => onSettingChange("simplifier", e.target.checked)} 
-                      />
-                      <label htmlFor="simplifier">
-                        <strong>Smart Simplifier</strong>
-                        <p>"High-conductivity" → "Strong signal" manner.</p>
-                      </label>
+                    <div className="settings-group">
+                        <span className="section-label" style={{ color: "var(--primary)" }}>Semantics</span>
+                        <div className="check-row">
+                          <input 
+                            type="checkbox" 
+                            id="simplifier" 
+                            checked={settings.simplifier} 
+                            onChange={(e) => onSettingChange("simplifier", e.target.checked)} 
+                          />
+                          <label htmlFor="simplifier">
+                            <strong>Smart Simplifier</strong>
+                            <p>"High-conductivity" → "Strong signal" manner.</p>
+                          </label>
+                        </div>
                     </div>
-                 </div>
 
-                 <div className="settings-group">
-                    <span className="section-label">Intensity Control</span>
-                    <input 
-                        type="range" 
-                        className="intensity-slider" 
-                        min="0" 
-                        max="100" 
-                        value={settings.intensity} 
-                        onChange={(e) => onSettingChange("intensity", parseInt(e.target.value))} 
-                    />
-                    <div className="slider-labels">
-                       <span>Safe</span>
-                       <strong>{settings.intensity > 80 ? "Chaos" : settings.intensity > 50 ? "Aggressive" : "Safe"}</strong>
-                       <span>Chaos</span>
+                    <div className="settings-group">
+                        <span className="section-label">Intensity Control</span>
+                        <input 
+                            type="range" 
+                            className="intensity-slider" 
+                            min="0" 
+                            max="100" 
+                            value={settings.intensity} 
+                            onChange={(e) => onSettingChange("intensity", parseInt(e.target.value))} 
+                        />
+                        <div className="slider-labels">
+                           <span>Safe</span>
+                           <strong>{settings.intensity > 80 ? "Chaos" : settings.intensity > 50 ? "Aggressive" : "Safe"}</strong>
+                           <span>Chaos</span>
+                        </div>
                     </div>
-                 </div>
-                 
-                 <div className="feature-card">
-                     <Zap size={20} className="icon-gold" />
-                     <div>
-                        <strong>Anti-Undetectable Fix</strong>
-                        <p>Removes fingerprints left by bypasser tools.</p>
+                    
+                    <div className="feature-card">
+                        <Zap size={20} className="icon-gold" />
+                        <div>
+                           <strong>Anti-Undetectable Fix</strong>
+                           <p>Removes fingerprints left by bypasser tools.</p>
+                        </div>
                      </div>
-                  </div>
+                   </>
+                 ) : (
+                   <div className="history-tab-content">
+                      {history.length > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                           <button 
+                             className="clear-history-btn"
+                             onClick={onClearHistory}
+                           >
+                              Clear All
+                           </button>
+                        </div>
+                      )}
+                      {history.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-tertiary)' }}>
+                           <Clock size={32} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                           <p>No recent activity found.</p>
+                        </div>
+                      ) : (
+                        history.map((item: any) => (
+                          <div 
+                            key={item.id} 
+                            className="history-side-card" 
+                            onClick={() => onRestore?.(item)}
+                          >
+                             <div className="h-meta">
+                                <span>{item.timestamp}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                   <span className="h-persona">{item.persona}</span>
+                                   <button 
+                                     className="h-delete-btn"
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       onDeleteHistory?.(item.id);
+                                     }}
+                                     title="Delete item"
+                                   >
+                                      <Trash2 size={12} />
+                                   </button>
+                                </div>
+                             </div>
+                             <p className="h-preview">{item.preview}</p>
+                             {item.score && (
+                               <div className="h-score">
+                                  Score: <strong>{Math.round(item.score)}%</strong>
+                               </div>
+                             )}
+                          </div>
+                        ))
+                      )}
+                   </div>
+                 )}
               </div>
              ) : (
                <div className="compact-indicators animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
@@ -337,7 +496,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
 
       <style jsx>{`
         .sidebar {
-          background: var(--bg-panel);
+          background: var(--bg-app);
           display: flex;
           flex-direction: column;
           height: 100%;
@@ -371,9 +530,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
         }
         
         .sidebar.compact .sidebar-content {
-           padding: 1rem 0.5rem;
-           overflow: hidden;
-        }
+            padding: 1rem 0.5rem;
+            overflow: hidden;
+         }
+         
+         .sidebar-analysis.compact {
+            width: 60px;
+         }
 
         .section-header {
            margin-bottom: 2rem;
@@ -444,7 +607,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
            width: 168px;
            height: 168px;
            border-radius: 50%;
-           background: var(--bg-panel); 
+           background: var(--bg-app); 
            display: flex;
            align-items: center;
            justify-content: center;
@@ -830,6 +993,165 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
         .info-icon-sm {
            color: var(--text-tertiary);
            cursor: help;
+        }
+
+        /* --- NEW TAB STYLES --- */
+        .tab-switcher-container {
+            background: var(--bg-app); /* Dark navy background */
+            padding: 4px;
+            border-radius: 12px;
+            display: flex;
+            gap: 4px;
+            margin-bottom: 2rem;
+            border: 1px solid #1e293b;
+        }
+        .tab-switch-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tab-switch-btn.active {
+            background: white;
+            color: var(--bg-app); /* Dark text for active tab */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* --- PERSONA CARD STYLES --- */
+        .persona-card {
+            background: var(--bg-app);
+            border: 1px solid #1e293b;
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+            margin-bottom: 0.6rem;
+        }
+        .persona-card:hover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.08);
+        }
+        .persona-card.active {
+          border-color: #3b82f6;
+          background: rgba(59, 130, 246, 0.1);
+          box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+        .persona-info strong {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+        .persona-info p {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            line-height: 1.3;
+        }
+        .radio-circle {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border-subtle);
+            border-radius: 50%;
+            position: relative;
+        }
+        .persona-card.active .radio-circle {
+            border-color: var(--primary);
+        }
+        .persona-card.active .radio-circle::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        /* --- HISTORY SIDEBAR TAB STYLES --- */
+        .history-side-card {
+            background: var(--bg-app); /* Darker card background */
+            border: 1px solid #1e293b;
+            padding: 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.8rem;
+        }
+        .history-side-card:hover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+        .h-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            margin-bottom: 0.4rem;
+        }
+        .h-persona {
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        .h-preview {
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 0.4rem;
+        }
+        .h-score {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 0.4rem;
+        }
+        .h-score strong {
+            color: #10b981; /* High contrast green */
+            font-weight: 700;
+        }
+
+        .h-delete-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .h-delete-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .clear-history-btn {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .clear-history-btn:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
         }
       `}</style>
     </aside>
