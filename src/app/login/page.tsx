@@ -18,9 +18,9 @@ export default function LoginPage() {
 
     // Simulate API call
     setTimeout(() => {
-      Cookies.set('auth_token', 'mock_token_12345', { expires: 7 }); // Expires in 7 days
+      Cookies.set('auth_token', 'mock_token_12345', { expires: 7, path: '/' }); 
       setIsLoading(false);
-      router.push('/dashboard');
+      window.location.href = '/dashboard'; // Use full reload to fix cookie sync with middleware
     }, 1500);
   };
 

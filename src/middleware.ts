@@ -15,31 +15,29 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/profile') ||
     pathname.startsWith('/notifications');
 
-  // If trying to access a protected route without a token, redirect to login
+  // 1. If trying to access a protected route without a token, redirect to login
   if (isProtected && !token) {
-    const loginUrl = new URL('/login', request.url)
-    // loginUrl.searchParams.set('from', pathname) // Optional: save where they were going
-    return NextResponse.redirect(loginUrl)
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // If already logged in and trying to access /login OR / (landing page), redirect to dashboard
-  if (token && (pathname === '/login' || pathname === '/')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // 2. If already logged in and trying to access /login, redirect to dashboard
+  // Note: We don't redirect away from '/' (landing page) because user might want to see Home
+  if (token && pathname === '/login') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
-// Configure which paths the middleware should run on
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * Match all request paths except for:
+     * 1. /api routes
+     * 2. /_next (Next.js internals)
+     * 3. /_static (static files)
+     * 4. /favicon.ico, /robots.txt, etc.
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
   ],
 }
