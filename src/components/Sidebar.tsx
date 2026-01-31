@@ -109,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
                 <div className="breakdown-row">
                     <div className="bd-label-group">
                         <span>AI-generated</span>
-                        <Info size={12} className="info-icon-sm" title="Text with low perplexity and high consistency." />
+                        <span title="Text with low perplexity and high consistency."><Info size={12} className="info-icon-sm" /></span>
                     </div>
                     <div className="bd-value-group">
                         <div className="dot-indicator" style={{ backgroundColor: '#f7a049' }}></div>
@@ -121,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
                 <div className="breakdown-row">
                     <div className="bd-label-group">
                         <span>Human & AI-refined</span>
-                        <Info size={12} className="info-icon-sm" title="Text with mixed signals." />
+                        <span title="Text with mixed signals."><Info size={12} className="info-icon-sm" /></span>
                     </div>
                     <div className="bd-value-group">
                         <div className="dot-indicator" style={{ backgroundColor: '#a5d6ff' }}></div>
@@ -133,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
                 <div className="breakdown-row">
                     <div className="bd-label-group">
                         <span>Human-written</span>
-                        <Info size={12} className="info-icon-sm" title="Text with high entropy and burstiness." />
+                        <span title="Text with high entropy and burstiness."><Info size={12} className="info-icon-sm" /></span>
                     </div>
                     <div className="bd-value-group">
                         <div className="dot-indicator" style={{ backgroundColor: 'transparent', border: '1px solid var(--text-tertiary)' }}></div>
@@ -145,7 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, humanScore, settings, on
              <div className="verification-section" style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.5rem' }}>
                 <div style={{ marginBottom: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                    <span className="section-label" style={{ marginBottom: 0 }}>PASSED DETECTORS (SIMULATED)</span>
-                   <Info size={12} className="info-icon-sm" title="These results are estimated based on local entropy and burstiness analysis. No data is sent to external servers." />
+                   <span title="These results are estimated based on local entropy and burstiness analysis. No data is sent to external servers."><Info size={12} className="info-icon-sm" /></span>
                 </div>
                 
                 <div className="badge-cloud" style={{ justifyContent: 'center' }}>
