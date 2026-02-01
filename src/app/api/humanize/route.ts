@@ -262,7 +262,6 @@ export async function POST(req: Request) {
 
     // --- 3. SMART SIMPLIFIER (De-Jargoner) ---
     // AI loves big words. Humans use small words.
-    // This runs by default now to crush "Perplexity".
     const simpleMap: Record<string, string> = {
         "consequently": "so", "furthermore": "also", "moreover": "plus",
         "however": "but", "therefore": "so", "utilize": "use", "utilizes": "uses",
@@ -278,7 +277,32 @@ export async function POST(req: Request) {
         processedText = processedText.replace(regex, simpleMap[complex]);
     });
 
-    // Vocabulary Replacement
+    // --- 3.5 PREDICTABILITY KILLER (Rare Synonym Injection) ---
+    // AI picks the most likely word. We pick the weird one.
+    // "Rapid growth" -> "Crazy growth" (Low probability token)
+    if (config.vocab) {
+        const rareMap: Record<string, string[]> = {
+            "significant": ["huge", "crazy", "wild", "massive"],
+            "increase": ["bump", "jump", "spike"],
+            "decrease": ["drop", "dip", "crash"],
+            "important": ["key", "big", "main"],
+            "very": ["super", "pretty", "kinda", "insanely"],
+            "good": ["solid", "decent", "okay", "killer"],
+            "bad": ["rough", "messy", "janky", "trash"],
+            "difficult": ["tough", "hard", "tricky"],
+            "interesting": ["cool", "weird", "wild", "fun"]
+        };
+
+        Object.keys(rareMap).forEach(word => {
+             const regex = new RegExp(`\\b${word}\\b`, "gi");
+             processedText = processedText.replace(regex, () => {
+                 const options = rareMap[word];
+                 return Math.random() > 0.5 ? options[Math.floor(Math.random() * options.length)] : word;
+             });
+        });
+    }
+
+    // Vocabulary Replacement (Legacy)
     if (config.vocab) {
         // Randomize replacement chance based on intensity
         const threshold = 1 - (config.intensity / 100); 
@@ -368,16 +392,20 @@ export async function POST(req: Request) {
         });
 
         // H. MOOD INJECTOR (Kill Neutral Tone) (INCREASED AGGRESSION)
-        // AI is objective. Humans are emotional.
-        // "The result was good." -> "Surprisingly, the result was good."
         const moods = ["Surprisingly,", "Sadly,", "Luckily,", "Weirdly,", "Thankfully,", "Ironially,", "Honestly,"];
         processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match, p1, p2) => {
-             // INCREASED CHANCE TO 60% (was 30%)
              if (Math.random() > 0.4) {
                  const mood = moods[Math.floor(Math.random() * moods.length)];
                  return `${p1} ${mood} ${p2.toLowerCase()}`;
              }
              return match;
+        });
+
+        // K. REDUNDANCY LOOPER (The "Human Inefficiency" Engine)
+        // AI is efficient. Humans repeat themselves for emphasis.
+        // "It was hard." -> "It was hard. I mean, really hard."
+        processedText = processedText.replace(/(\w+)\s+(was|is|are|were)\s+(very|really|quite)?\s?([a-z]+)\./g, (match, subj, copula, adv, adj) => {
+             return Math.random() > 0.6 ? `${match} I mean, ${adj}.` : match; 
         });
 
         // I. POSSESSIVE OPTIMIZER (The "Of" Killer)
