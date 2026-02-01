@@ -295,9 +295,9 @@ export async function POST(req: Request) {
 
         Object.keys(rareMap).forEach(word => {
              const regex = new RegExp(`\\b${word}\\b`, "gi");
-             processedText = processedText.replace(regex, () => {
+             processedText = processedText.replace(regex, (match: string) => {
                  const options = rareMap[word];
-                 return Math.random() > 0.5 ? options[Math.floor(Math.random() * options.length)] : word;
+                 return Math.random() > 0.5 ? options[Math.floor(Math.random() * options.length)] : match;
              });
         });
     }
@@ -547,7 +547,7 @@ export async function POST(req: Request) {
         
         // 0. DESTROY PARAGRAPHS (AI writes small chunks. Humans write blocks.)
         // Merge every 2nd paragraph to create density.
-        processedText = processedText.replace(/(\.)\n\n([A-Z])/g, (match, p1, p2) => {
+        processedText = processedText.replace(/(\.)\n\n([A-Z])/g, (match: string, p1: string, p2: string) => {
              return Math.random() > 0.5 ? `${p1} ${p2}` : match;
         });
 
@@ -569,12 +569,12 @@ export async function POST(req: Request) {
         };
         Object.entries(crucialTypos).forEach(([word, typo]) => {
              const regex = new RegExp(`\\b${word}\\b`, "g");
-             processedText = processedText.replace(regex, (m) => Math.random() > 0.88 ? typo : m);
+             processedText = processedText.replace(regex, (m: string) => Math.random() > 0.88 ? typo : m);
         });
         
         // 3. Subjectivity Injection (Kill Objectivity)
         // "This is efficient." -> "I feel like this is efficient."
-        processedText = processedText.replace(/\.\s([A-Z])/g, (match, p1) => {
+        processedText = processedText.replace(/\.\s([A-Z])/g, (match: string, p1: string) => {
              const openers = ["Honestly, ", "I mean, ", "To be fair, ", "Actually, "];
              return Math.random() > 0.85 ? `. ${openers[Math.floor(Math.random()*openers.length)]}${p1.toLowerCase()}` : match;
         });
@@ -583,7 +583,7 @@ export async function POST(req: Request) {
         // AI cannot write comma splices. Humans do it all the time.
         // "It was cold, so we left." -> "It was cold, we left."
         // "He is smart. He studies hard." -> "He is smart, he studies hard."
-        processedText = processedText.replace(/(\w+)\.\s+([A-Z][a-z]+)/g, (match, p1, p2) => {
+        processedText = processedText.replace(/(\w+)\.\s+([A-Z][a-z]+)/g, (match: string, p1: string, p2: string) => {
              // 40% chance to fuse sentences with a comma (Comma Splice)
              return Math.random() > 0.6 ? `${p1}, ${p2.toLowerCase()}` : match;
         });
