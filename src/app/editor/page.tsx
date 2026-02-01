@@ -1,9 +1,13 @@
 "use client";
 
 import { Editor } from "@/components/Editor";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Sidebar } from "@/components/Sidebar";
 import { calculateHumanScore } from "@/lib/detector";
+import { detectAIClient } from "@/lib/hybrid-detector";
 import { diffWords } from "diff";
+import Cookies from "js-cookie";
+import { LogOut, User } from "lucide-react";
 import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -23,11 +27,17 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [humanScore, setHumanScore] = useState<number | null>(null);
   const [aiSentences, setAiSentences] = useState<string[]>([]);
+  const [inputAiSentences, setInputAiSentences] = useState<string[]>([]);
   
   // New State
   const [persona, setPersona] = useState("standard");
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showDiff, setShowDiff] = useState(false);
+  
+  // Hybrid Detection State
+  const [isMLDetecting, setIsMLDetecting] = useState(false);
+  const [detectionConfidence, setDetectionConfidence] = useState<number | null>(null);
+  const [detectionMethod, setDetectionMethod] = useState<'heuristic' | 'ml' | 'hybrid'>('heuristic');
 
   const [settings, setSettings] = useState({
     vocab: true,
@@ -95,25 +105,7 @@ export default function Home() {
     }).join("");
   }, [showDiff, inputText, outputText]);
 
-  // Auto-scan effect (Client-side heuristics for Input)
-  useEffect(() => {
-    // If output exists, we trust the server-side score already set.
-    if (outputText || isProcessing) return;
-    
-    if (!inputText || inputText.trim().length < 50) {
-      setHumanScore(null);
-      setAiSentences([]);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      const result = calculateHumanScore(inputText);
-      setHumanScore(result.finalScore);
-      setAiSentences(result.aiSentences);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [inputText, outputText, isProcessing]);
+  // Auto-scan effect removed to prevent distracting jumps/processing until requested.
 
   const handleHumanize = useCallback(async () => {
     if (!inputText.trim()) return;
@@ -133,9 +125,33 @@ export default function Home() {
       const data = await response.json();
       if (data.text) {
         setOutputText(data.text);
-        const score = parseFloat(data.humanScore);
-        setHumanScore(score);
-        saveToHistory(inputText, data.text, score); // Save result
+        
+        // 🚨 REAL SCAN TRIGGER 🚨
+        // The API no longer lies. We must scan this ourselves to get the TRUTH.
+        setIsMLDetecting(true);
+        try {
+           // We use the client-side logic wrapper to fetch the API
+           const scanRes = await fetch("/api/detect", {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({ text: data.text, forceML: true })
+           });
+           const scanData = await scanRes.json();
+           
+           if (scanData.success && scanData.data) {
+               const realScore = scanData.data.humanScore;
+               setHumanScore(realScore);
+               setAiSentences(scanData.data.aiSentences || []);
+               saveToHistory(inputText, data.text, realScore); // Save confirmed truth
+           }
+        } catch (e) {
+           console.error("Auto-scan failed", e);
+           // Fallback if scan fails
+           setHumanScore(null); 
+           saveToHistory(inputText, data.text, null);
+        } finally {
+           setIsMLDetecting(false);
+        }
       }
     } catch (error) {
       console.error("Failed to humanize:", error);
@@ -146,8 +162,14 @@ export default function Home() {
 
   const handleInputChange = useCallback((val: string) => {
     setInputText(val);
-    if (outputText) setOutputText(""); // Clear stale output on new input
-  }, [outputText]);
+    if (outputText) setOutputText(""); 
+    if (inputAiSentences.length > 0) setInputAiSentences([]); // Clear highlights while typing
+  }, [outputText, inputAiSentences]);
+
+  const handleInputPaste = useCallback((val: string) => {
+    setInputText(val);
+    // Auto-scan disabled on paste per user request
+  }, []);
 
   const handleSettingChange = useCallback((key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -157,12 +179,71 @@ export default function Home() {
     setInputText("");
     setHumanScore(null);
     setOutputText("");
+    setInputAiSentences([]);
+    setAiSentences([]);
   }, []);
 
-  const handleScan = useCallback(() => {
-    // Logic for scanning
-    console.log("Scanning text...");
-  }, []);
+  const handleScan = useCallback(async () => {
+    const textToScan = outputText || inputText;
+    if (!textToScan || textToScan.trim().length < 50) {
+      alert("Please enter at least 50 characters to scan.");
+      return;
+    }
+    
+    setIsMLDetecting(true);
+    try {
+      // Call the hybrid detection API
+      const response = await fetch("/api/detect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          text: textToScan,
+          forceML: true // Force ML detection for manual scan
+        }),
+      });
+      
+      const result = await response.json();
+      
+      console.log("🔍 Full API Response:", result);
+      
+      if (result.success && result.data) {
+        const { humanScore, aiScore, confidence, method, aiSentences, mlDetails } = result.data;
+        
+        console.log("📊 Detection Results:", {
+          humanScore,
+          aiScore,
+          confidence,
+          method,
+          mlDetails
+        });
+        
+        console.log("🔬 ML Details Breakdown:", {
+          aiProbability: mlDetails?.aiProbability,
+          humanProbability: mlDetails?.humanProbability,
+          mlConfidence: mlDetails?.confidence,
+          modelUsed: mlDetails?.modelUsed
+        });
+        
+        setHumanScore(humanScore);
+        setDetectionConfidence(confidence);
+        setDetectionMethod(method);
+        setAiSentences(aiSentences || []);
+        if (!outputText) setInputAiSentences(aiSentences || []); // Also highlight input if we scanned it
+        
+        console.log("ML Detection complete:", {
+          humanScore,
+          aiScore,
+          confidence,
+          method
+        });
+      }
+    } catch (error) {
+      console.error("ML detection failed:", error);
+      alert("Detection failed. Please try again.");
+    } finally {
+      setIsMLDetecting(false);
+    }
+  }, [inputText, outputText]);
 
   const handleExport = useCallback(() => {
     const textToExport = outputText || inputText;
@@ -534,9 +615,39 @@ export default function Home() {
                 </button>
               )}
               <button className="action-btn primary" onClick={handleHumanize} disabled={isProcessing}>
-                 {isProcessing ? "Processing..." : "Humanize Text"}
+                 {isProcessing ? (
+                    <span className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" color="white" />
+                      <span>Optimizing...</span>
+                    </span>
+                 ) : "Humanize Text"}
+              </button>
+              <button 
+                className="action-btn ml-scan" 
+                onClick={handleScan} 
+                disabled={isMLDetecting || (!inputText && !outputText)}
+                title="Check for AI"
+              >
+                 {isMLDetecting ? "Checking..." : "🛡️ Check for AI"}
               </button>
               <button className="action-btn outline" onClick={handleExport}>Export</button>
+              
+              <div className="v-divider" />
+              
+              <Link href="/profile" className="profile-btn" title="Profile">
+                <User size={18} />
+              </Link>
+              
+              <button 
+                className="logout-icon-btn" 
+                onClick={() => {
+                   Cookies.remove('auth_token');
+                   window.location.href = '/';
+                }}
+                title="Log out"
+              >
+                 <LogOut size={18} />
+              </button>
            </div>
         </header>
 
@@ -545,10 +656,12 @@ export default function Home() {
             label="Input Source" 
             value={inputText} 
             onChange={handleInputChange} 
+            onPaste={handleInputPaste}
             wordCount={wordCount(inputText)}
             onClear={handleClearInput}
             onFileUpload={handleFileUpload}
             placeholder="Paste text or upload file..."
+            highlightedSentences={inputAiSentences}
           />
           <Editor 
             label="Humanized Output" 
@@ -573,6 +686,8 @@ export default function Home() {
         aiSentencesCount={aiSentences.length}
         persona={persona}
         onPersonaChange={setPersona}
+        detectionConfidence={detectionConfidence}
+        detectionMethod={detectionMethod}
       />
 
       {isProcessing && (
@@ -580,6 +695,18 @@ export default function Home() {
            <div className="loader">
               <div className="spinner" />
               <span>Humanizing...</span>
+           </div>
+        </div>
+      )}
+      
+      {isMLDetecting && (
+        <div className="loading-overlay">
+           <div className="loader">
+              <div className="spinner" />
+              <span>Running ML Detection...</span>
+              <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.5rem' }}>
+                Using RoBERTa AI Detector
+              </p>
            </div>
         </div>
       )}
@@ -661,6 +788,53 @@ export default function Home() {
         .action-btn.outline:hover {
            color: var(--text-primary);
            border-color: var(--text-primary);
+        }
+        
+        .action-btn.ml-scan {
+           background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+           border: 1px solid rgba(59, 130, 246, 0.3);
+           color: #3b82f6;
+           font-weight: 600;
+        }
+        .action-btn.ml-scan:hover {
+           background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+           border-color: #3b82f6;
+           transform: translateY(-1px);
+           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .action-btn.ml-scan:disabled {
+           opacity: 0.5;
+           cursor: not-allowed;
+           transform: none;
+        }
+
+        .v-divider {
+           width: 1px;
+           height: 20px;
+           background: rgba(255,255,255,0.1);
+           margin: 0 0.5rem;
+        }
+
+        .profile-btn, .logout-icon-btn {
+           width: 36px;
+           height: 36px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           border-radius: 9px;
+           color: var(--text-secondary);
+           transition: all 0.2s;
+           border: 1px solid transparent;
+        }
+        .profile-btn:hover {
+           background: var(--primary-faint);
+           color: var(--primary);
+           border-color: rgba(59, 130, 246, 0.2);
+        }
+        .logout-icon-btn:hover {
+           background: rgba(239, 68, 68, 0.1);
+           color: #ef4444;
+           border-color: rgba(239, 68, 68, 0.2);
         }
 
         .editors-grid {

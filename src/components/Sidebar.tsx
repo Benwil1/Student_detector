@@ -25,6 +25,9 @@ interface SidebarProps {
   onRestore?: (item: any) => void;
   onClearHistory?: () => void;
   onDeleteHistory?: (id: string) => void;
+  // Hybrid Detection Props
+  detectionConfidence?: number | null;
+  detectionMethod?: 'heuristic' | 'ml' | 'hybrid';
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -39,7 +42,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     history = [],
     onRestore,
     onClearHistory,
-    onDeleteHistory
+    onDeleteHistory,
+    detectionConfidence = null,
+    detectionMethod = 'heuristic'
 }) => {
   const [isCompact, setIsCompact] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(mode === "analysis" ? "detector" : "config");
@@ -141,7 +146,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="stat-lbl">AI Probability</div>
                      </div>
                      <div className="stat-item">
-                        <div className="stat-val-lg">High</div>
+                        <div className="stat-val-lg">
+                          {detectionConfidence !== null ? `${Math.round(detectionConfidence)}%` : 'High'}
+                        </div>
                         <div className="stat-lbl">Confidence</div>
                      </div>
                      <div className="stat-item">
@@ -154,7 +161,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                      </div>
                      <div className="stat-item">
                         <div className="stat-val-lg">{aiSentencesCount} <Info size={10} className="info-icon-sm" /></div>
-                        <div className="stat-lbl">AI Sentences</div>
+                        <div className="stat-lbl">
+                          {detectionMethod === 'ml' ? '🤖 ML' : detectionMethod === 'hybrid' ? '⚡ Hybrid' : '📊 Heuristic'}
+                        </div>
                      </div>
                  </div>
 
@@ -257,7 +266,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
              <div className="truthscan-badge" style={{ marginTop: '2rem' }}>
                 <button className="truthscan-btn">
                    <Zap size={14} fill="currentColor" />
-                   Powered by <strong>MyThesisTruth</strong>
+                   Powered by <strong>Student Humanizer Plus</strong>
                 </button>
              </div>
                 </>

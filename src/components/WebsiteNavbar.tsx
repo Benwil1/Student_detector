@@ -51,16 +51,21 @@ export const WebsiteNavbar = () => {
               <Link href="/notifications" className="nav-icon-btn"><Bell size={16} /></Link>
               <button className="nav-icon-btn"><Moon size={16} /></button>
            </div>
-           <div className="divider-v"/>
-           <div className="divider-v"/>
-           <Link href="/profile" className="user-profile-circle">
-              <User size={18} />
-           </Link>
-           {isLoggedIn && (
-             <button onClick={handleLogout} className="logout-nav-btn" title="Log out">
-                <LogOut size={16} />
-             </button>
-           )}
+            {isLoggedIn ? (
+              <>
+                <Link href="/profile" className="user-profile-circle">
+                  <User size={18} />
+                </Link>
+                <button onClick={handleLogout} className="logout-nav-btn" title="Log out">
+                  <LogOut size={16} />
+                </button>
+              </>
+            ) : (
+              <div className="guest-actions">
+                <Link href="/login" className="login-link-btn">Sign In</Link>
+                <Link href="/login" className="signup-nav-btn">Get Started</Link>
+              </div>
+            )}
            <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
               {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
            </button>
@@ -279,6 +284,34 @@ export const WebsiteNavbar = () => {
             background: rgba(239, 68, 68, 0.1);
             border-color: rgba(239, 68, 68, 0.3);
             color: #ef4444;
+         }
+         
+         .guest-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+         }
+         .login-link-btn {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+            transition: color 0.2s;
+         }
+         .login-link-btn:hover { color: white; }
+         .signup-nav-btn {
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: #3b82f6;
+            color: white;
+            padding: 0.5rem 1.2rem;
+            border-radius: 99px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+            transition: all 0.2s;
+         }
+         .signup-nav-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
          }
 
         @media (max-width: 900px) {

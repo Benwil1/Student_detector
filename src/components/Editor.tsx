@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Edit3, FileUp, Trash2 } from "lucide-react";
+import { Check, Copy, Edit3, FileUp, Search, Trash2 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
 interface EditorProps {
@@ -15,6 +15,7 @@ interface EditorProps {
   onScan?: () => void;
   onEdit?: () => void;
   onFileUpload?: (file: File) => void;
+  onPaste?: (val: string) => void;
   highlightedSentences?: string[];
   diffHtml?: string | null;
 }
@@ -31,6 +32,7 @@ export const Editor: React.FC<EditorProps> = ({
   onScan,
   onEdit,
   onFileUpload,
+  onPaste,
   highlightedSentences = [],
   diffHtml = null
 }) => {
@@ -70,7 +72,6 @@ export const Editor: React.FC<EditorProps> = ({
   };
 
   const handleCopy = async () => {
-    // ... existing handleCopy ...
     if (!value) return;
     
     try {
@@ -80,7 +81,6 @@ export const Editor: React.FC<EditorProps> = ({
         throw new Error("Clipboard API unavailable");
       }
     } catch (err) {
-      // ... existing fallback ...
       const textarea = document.createElement("textarea");
       textarea.value = value;
       textarea.style.position = "fixed"; 
@@ -100,12 +100,12 @@ export const Editor: React.FC<EditorProps> = ({
     const text = e.clipboardData.getData("text/plain");
     // Insert text at cursor position, stripping all formatting
     document.execCommand("insertText", false, text);
+    if (onPaste) onPaste(editorRef.current?.innerText || text);
   };
 
   return (
     <div className="editor-container">
       <div className="editor-header">
-        {/* ... header content ... */}
         <div className="header-left">
           <span className="label-text">{label}</span>
           {onFileUpload && (
@@ -123,7 +123,33 @@ export const Editor: React.FC<EditorProps> = ({
         </div>
         <div className="header-right">
           <span className="stat-badge">{wordCount} words</span>
-          {score && <span className="score-badge">AI: {score}</span>}
+          {score && <span className="score-badge">Human: {score}</span>}
+          
+          <div className="header-actions">
+           {onScan && (
+              <button className="action-btn scan-btn" onClick={onScan} title="Run ML Detection">
+                <Search size={14} />
+              </button>
+            )}
+            {onClear && (
+              <button className="action-btn" onClick={onClear} title="Clear text">
+                <Trash2 size={14} />
+              </button>
+            )}
+            {onEdit && (
+              <button className="action-btn" onClick={onEdit} title="Send to input for editing">
+                <Edit3 size={14} />
+              </button>
+            )}
+            <button 
+              className="action-btn" 
+              onClick={handleCopy} 
+              title="Copy to clipboard"
+              style={isCopied ? { color: 'var(--success)', borderColor: 'var(--success)' } : {}}
+            >
+              {isCopied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -144,31 +170,7 @@ export const Editor: React.FC<EditorProps> = ({
         />
         
         {/* Actions ... */}
-        <div className="floating-actions">
-          {onScan && (
-            <button className="action-btn" onClick={onScan} title="Scan for AI markers">
-              <Edit3 size={16} />
-            </button>
-          )}
-          {onClear && (
-            <button className="action-btn" onClick={onClear} title="Clear text">
-              <Trash2 size={16} />
-            </button>
-          )}
-          {onEdit && (
-            <button className="action-btn" onClick={onEdit} title="Send to input for editing">
-              <Edit3 size={16} />
-            </button>
-          )}
-          <button 
-            className="action-btn" 
-            onClick={handleCopy} 
-            title="Copy to clipboard"
-            style={isCopied ? { color: 'var(--success)', borderColor: 'var(--success)' } : {}}
-          >
-            {isCopied ? <Check size={16} /> : <Copy size={16} />}
-          </button>
-        </div>
+        {/* Floating actions removed - moved to header */}
       </div>
 
       <style jsx>{`
@@ -277,27 +279,42 @@ export const Editor: React.FC<EditorProps> = ({
           pointer-events: none;
         }
 
-        .floating-actions {
-          position: absolute;
-          bottom: 1rem;
-          right: 1rem;
+        .header-actions {
           display: flex;
+          align-items: center;
           gap: 0.5rem;
-          transform: translateY(10px);
-          opacity: 0;
-          transition: all 0.2s ease;
-        }
-
-        .editor-wrapper:hover .floating-actions {
-          transform: translateY(0);
-          opacity: 1;
+          margin-left: 0.5rem;
+          padding-left: 0.5rem;
+          border-left: 1px solid var(--border-subtle);
         }
 
         .action-btn {
-          width: 32px;
-          height: 32px;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
+          justify-content: center;
+          border-radius: var(--radius-sm);
+          color: var(--text-tertiary);
+          background: transparent;
+          border: 1px solid transparent;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+          color: var(--text-primary);
+          background: var(--bg-hover);
+        }
+        
+        .scan-btn {
+           color: var(--primary);
+           background: var(--primary-faint);
+        }
+        .scan-btn:hover {
+           background: var(--primary);
+           color: #fff;
+        }
           justify-content: center;
           background: var(--bg-surface);
           border: 1px solid var(--border-subtle);
@@ -309,6 +326,17 @@ export const Editor: React.FC<EditorProps> = ({
           color: var(--text-primary);
           border-color: var(--primary);
           background: var(--bg-panel);
+        }
+        
+        .scan-btn {
+          color: #3b82f6 !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
+          background: rgba(59, 130, 246, 0.05) !important;
+        }
+        .scan-btn:hover {
+          border-color: #3b82f6 !important;
+          background: rgba(59, 130, 246, 0.15) !important;
+          transform: scale(1.05);
         }
 
         .icon-btn-label {

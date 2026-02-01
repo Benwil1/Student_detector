@@ -4,7 +4,7 @@ import { WebsiteNavbar } from "@/components/WebsiteNavbar";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, BookOpen, CheckCircle, Cpu, Facebook, GraduationCap, Instagram, Landmark, Linkedin, MessageSquare, Shield, Star, TreePine, Twitter, Zap } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -470,57 +470,65 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. CUTE REVIEWS SECTION */}
+      {/* 3. REVIEWS SECTION - REDESIGNED EXACTLY */}
       <section className="reviews-section observer-reveal">
         <div className="container">
           <div className="reviews-header text-center">
-            <h2 className="section-title-cute">What students <span className="text-pink">love</span> about us</h2>
-            <p className="section-subtitle-cute">Join over 50,000 students who trust HumanizerAI for their best work.</p>
+            <div className="testimonial-badge-pill">Testimonials</div>
+            <h2 className="section-title-premium">What Our Users Say</h2>
+            <p className="section-subtitle-premium">Thousands of students have found academic success through HumanizerAI.</p>
           </div>
           
-          <div className="reviews-grid">
-            {[
-              { 
-                name: "Elena R.", 
-                role: "Masters Student", 
-                text: "The ESL mode is a total lifesaver. My professor actually complimented my 'natural' writing style for once!",
-                color: "pink",
-                avatar: "https://i.pravatar.cc/150?u=elena"
-              },
-              { 
-                name: "David L.", 
-                role: "PhD Candidate", 
-                text: "I was terrified of my thesis being flagged. This tool kept my citations perfect while fixing the flow.",
-                color: "mint",
-                avatar: "https://i.pravatar.cc/150?u=david"
-              },
-              { 
-                name: "Sophie W.", 
-                role: "Undergrad", 
-                text: "Finally, a tool that doesn't just swap words but actually understands student rhythm. 10/10 recommend!",
-                color: "blue",
-                avatar: "https://i.pravatar.cc/150?u=sophie"
-              }
-            ].map((review, idx) => (
-              <div key={idx} className={`review-card ${review.color} hover-lift shadow-sm`}>
-                <div className="quote-icon">“</div>
-                <p className="review-text">{review.text}</p>
-                <div className="review-footer">
-                  <img src={review.avatar} alt={review.name} className="review-avatar" />
-                  <div className="review-info">
-                    <span className="review-name">{review.name}</span>
-                    <span className="review-role">{review.role}</span>
-                  </div>
-                  <div className="review-stars">
-                    <Star size={12} fill="currentColor" />
-                    <Star size={12} fill="currentColor" />
-                    <Star size={12} fill="currentColor" />
-                    <Star size={12} fill="currentColor" />
-                    <Star size={12} fill="currentColor" />
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="testimonials-carousel-wrapper">
+            <div className="testimonials-track">
+              {[...Array(3)].map((_, groupIdx) => (
+                <React.Fragment key={groupIdx}>
+                  {[
+                    { 
+                      name: "Sarah Johnson", 
+                      role: "Graduate Student", 
+                      text: "\"HumanizerAI helped me submit my thesis without the stress of AI detectors. The citation lock is a miracle—it kept all my APA references perfectly intact while humanizing the flow!\"",
+                      avatar: "https://i.pravatar.cc/150?u=sarah",
+                      featured: true
+                    },
+                    { 
+                      name: "Michael Chen", 
+                      role: "Software Engineer", 
+                      text: "\"After testing several bypass tools, HumanizerAI is the only one that truly understands technical rhythm. It doesn't just swap words; it reconstructs sentences naturally.\"",
+                      avatar: "https://i.pravatar.cc/150?u=michael",
+                      featured: false
+                    },
+                    { 
+                      name: "Olivia Rodriguez", 
+                      role: "Marketing Specialist", 
+                      text: "\"As someone whose English is a second language, this tool made my professional reports sound authentic and natural. It's an essential part of my workflow now.\"",
+                      avatar: "https://i.pravatar.cc/150?u=olivia",
+                      featured: false
+                    }
+                  ].map((review, idx) => (
+                    <div key={`${groupIdx}-${idx}`} className={`review-card-premium ${review.featured ? 'featured' : ''}`}>
+                      <div className="card-stars">
+                        <Star size={16} fill="#3b82f6" color="#3b82f6" />
+                        <Star size={16} fill="#3b82f6" color="#3b82f6" />
+                        <Star size={16} fill="#3b82f6" color="#3b82f6" />
+                        <Star size={16} fill="#3b82f6" color="#3b82f6" />
+                        <Star size={16} fill="#3b82f6" color="#3b82f6" />
+                      </div>
+                      
+                      <p className="review-text-premium">{review.text}</p>
+                      
+                      <div className="review-profile">
+                        <img src={review.avatar} alt={review.name} className="profile-avatar" />
+                        <div className="profile-info">
+                          <span className="profile-name">{review.name}</span>
+                          <span className="profile-role">{review.role}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -694,14 +702,14 @@ export default function LandingPage() {
         .bubble-info { font-size: 0.85rem; }
 
         .why-choose {
-          padding: 12rem 0;
+          padding: 8rem 0 4rem; /* Reduced bottom padding */
           background: #020617;
           position: relative;
         }
         .why-content {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 8rem;
+          gap: 5rem; /* Reduced from 8rem */
           align-items: center;
         }
         /* LEFT: Visual Panel */
@@ -711,36 +719,36 @@ export default function LandingPage() {
         }
         .analysis-card {
           background: #0f172a;
-          border-radius: 28px;
+          border-radius: 20px; /* Reduced from 28px */
           border: 1px solid rgba(255,255,255,0.1);
           overflow: hidden;
           width: 100%;
-          max-width: 580px;
+          max-width: 480px; /* Reduced from 580px */
         }
         .ac-header {
-          padding: 1.2rem 2rem;
+          padding: 1rem 1.8rem; /* Reduced from 1.2rem 2rem */
           background: rgba(255,255,255,0.02);
           border-bottom: 1px solid rgba(255,255,255,0.05);
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-        .ac-tabs { display: flex; gap: 1.5rem; }
-        .ac-tab { font-size: 0.8rem; color: #64748b; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .ac-tabs { display: flex; gap: 1.2rem; }
+        .ac-tab { font-size: 0.75rem; color: #64748b; font-weight: 500; cursor: pointer; transition: all 0.2s; }
         .ac-tab.active { color: #3b82f6; }
-        .ac-dots { display: flex; gap: 6px; }
-        .ac-dots span { width: 6px; height: 6px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+        .ac-dots { display: flex; gap: 5px; }
+        .ac-dots span { width: 5px; height: 5px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
         
         .ac-main-visual { 
           position: relative; 
           width: 100%; 
-          height: 320px; 
+          height: 260px; /* Reduced from 320px */
           overflow: hidden; 
           background: #020617;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 2rem;
+          padding: 1.5rem; /* Reduced from 2rem */
         }
         .ac-feature-grid {
           display: grid;
@@ -752,8 +760,8 @@ export default function LandingPage() {
         .ac-feat-item {
           background: rgba(255,255,255,0.03);
           border: 1px solid rgba(255,255,255,0.05);
-          border-radius: 16px;
-          padding: 1.2rem;
+          border-radius: 12px; /* Reduced from 16px */
+          padding: 0.8rem; /* Reduced from 1.2rem */
           transition: all 0.3s ease;
           display: flex;
           flex-direction: column;
@@ -769,43 +777,45 @@ export default function LandingPage() {
           border-color: rgba(59, 130, 246, 0.3);
         }
         .ac-fi-icon {
-          width: 36px;
-          height: 36px;
+          width: 28px; /* Reduced from 36px */
+          height: 28px;
           background: rgba(59, 130, 246, 0.1);
-          border-radius: 10px;
+          border-radius: 8px; /* Reduced from 10px */
           display: flex;
           align-items: center;
           justify-content: center;
           color: #3b82f6;
-          margin-bottom: 0.8rem;
+          margin-bottom: 0.6rem;
         }
-        .ac-feat-item h5 { font-size: 0.95rem; font-weight: 700; color: white; margin-bottom: 0.2rem; }
-        .ac-feat-item p { font-size: 0.75rem; color: #64748b; margin: 0; line-height: 1.3; }
+        .ac-feat-item h5 { font-size: 0.85rem; font-weight: 700; color: white; margin-bottom: 0.1rem; }
+        .ac-feat-item p { font-size: 0.7rem; color: #64748b; margin: 0; line-height: 1.3; }
         .ac-overlay-stats { 
           position: absolute; 
-          top: 20px; 
-          right: 20px; 
+          top: 12px; 
+          right: 12px; 
+          z-index: 10;
         }
         .stat-pill { 
-          background: rgba(16, 185, 129, 0.9); 
+          background: rgba(16, 185, 129, 0.95); 
           color: white; 
-          padding: 0.6rem 1rem; 
+          padding: 0.4rem 0.8rem; /* Reduced from 0.6rem 1rem */
           border-radius: 99px; 
-          font-size: 0.85rem; 
-          font-weight: 600; 
+          font-size: 0.7rem; /* Reduced from 0.85rem */
+          font-weight: 700; 
           display: flex; 
           align-items: center; 
-          gap: 0.5rem; 
+          gap: 0.4rem; 
           backdrop-filter: blur(4px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
-        .ac-text-preview { padding: 2.5rem; }
-        .ac-text-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
-        .ac-meta { display: flex; gap: 0.8rem; }
-        .meta-tag { background: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
-        .ac-time { color: #475569; font-size: 0.75rem; }
-        .ac-text-preview h4 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; }
-        .ac-text-preview p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; }
+        .ac-text-preview { padding: 1.8rem; } /* Reduced from 2.5rem */
+        .ac-text-header { display: flex; justify-content: space-between; margin-bottom: 1.2rem; }
+        .ac-meta { display: flex; gap: 0.6rem; }
+        .meta-tag { background: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+        .ac-time { color: #475569; font-size: 0.7rem; }
+        .ac-text-preview h4 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.6rem; }
+        .ac-text-preview p { color: #94a3b8; font-size: 0.85rem; line-height: 1.6; margin-bottom: 1.5rem; }
 
         .ac-actions { display: flex; justify-content: space-between; align-items: center; }
         .ac-action-icons { display: flex; gap: 1.5rem; color: #475569; }
@@ -840,94 +850,170 @@ export default function LandingPage() {
         .de-icon { color: #3b82f6; }
 
         /* RIGHT: Text Panel */
-        .section-title-large { font-size: 4rem; font-weight: 800; line-height: 1.1; margin-bottom: 2rem; }
-        .section-desc-premium { font-size: 1.2rem; color: #94a3b8; line-height: 1.7; margin-bottom: 3.5rem; max-width: 580px; }
+        .section-title-large { font-size: 3.2rem; font-weight: 800; line-height: 1.1; margin-bottom: 1.5rem; }
+        .section-desc-premium { font-size: 1rem; color: #94a3b8; line-height: 1.7; margin-bottom: 2.5rem; max-width: 500px; }
         
         .btn-premium-large {
           display: inline-flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.8rem;
           background: #3b82f6;
           color: white;
-          padding: 1.2rem 2.8rem;
-          border-radius: 16px;
+          padding: 1rem 2.2rem;
+          border-radius: 14px;
           font-weight: 700;
-          font-size: 1.1rem;
+          font-size: 1rem;
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .btn-premium-large:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(59, 130, 246, 0.3); }
 
-        .trust-stats-mini { margin-top: 4rem; display: flex; align-items: center; gap: 1.5rem; }
+        .trust-stats-mini { margin-top: 2.5rem; display: flex; align-items: center; gap: 1.5rem; }
         .ts-avatars { display: flex; -webkit-mask-image: linear-gradient(to right, black, black); }
         .ts-avatars img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #020617; margin-right: -12px; }
         .ts-more { width: 32px; height: 32px; border-radius: 50%; background: #1e293b; border: 2px solid #020617; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: #3b82f6; }
         .trust-stats-mini p { font-size: 0.9rem; color: #64748b; margin: 0; }
 
         .reviews-section {
-          padding: 8rem 0;
+          padding: 4rem 0 8rem; /* Reduced top padding */
           background: #020617;
+          color: white;
         }
-        .reviews-header { margin-bottom: 4rem; }
-        .section-title-cute { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; }
-        .text-pink { color: #f472b6; }
-        .section-subtitle-cute { font-size: 1.1rem; color: #64748b; }
-        
-        .reviews-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 2rem;
+        .reviews-section .container {
+           max-width: 1200px; /* Narrower container for smaller cards */
         }
-        .review-card {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 24px;
-          padding: 2.5rem;
+        .reviews-header {
+           margin-bottom: 2.5rem; /* Reduced from 4rem */
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+        }
+        .testimonial-badge-pill {
+           background: rgba(59, 130, 246, 0.1);
+           color: #3b82f6;
+           padding: 6px 18px;
+           border-radius: 99px;
+           font-size: 0.75rem;
+           font-weight: 700;
+           margin-bottom: 1.5rem;
+           display: inline-block;
+           border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .section-title-premium {
+           font-size: 2.8rem;
+           font-weight: 850;
+           line-height: 1.1;
+           margin-bottom: 1rem;
+           color: white;
+        }
+        .section-subtitle-premium {
+           font-size: 1rem;
+           color: #94a3b8;
+           max-width: 600px;
+           margin: 0 auto;
+        }
+
+        .testimonials-carousel-wrapper {
+          width: 100vw;
           position: relative;
+          left: 50%;
+          right: 50%;
+          margin-left: -50vw;
+          margin-right: -50vw;
           overflow: hidden;
+          padding: 2rem 0;
+          mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+          -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
         }
-        .review-card.pink { border-top: 4px solid #f472b6; }
-        .review-card.mint { border-top: 4px solid #34d399; }
-        .review-card.blue { border-top: 4px solid #3b82f6; }
-        
-        .quote-icon {
-          font-size: 4rem;
-          position: absolute;
-          top: -10px;
-          right: 20px;
-          opacity: 0.1;
-          font-family: serif;
+
+        .testimonials-track {
+          display: flex;
+          gap: 2rem;
+          width: max-content;
+          animation: testimonialScroll 60s linear infinite;
         }
-        .review-text {
-          font-size: 1.1rem;
+
+        .testimonials-track:hover {
+          animation-play-state: paused;
+        }
+
+        @keyframes testimonialScroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.333%); }
+        }
+
+        .review-card-premium {
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 16px;
+          padding: 2.2rem 1.8rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          width: 380px; /* Fixed width for carousel items */
+          box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .review-card-premium.featured {
+          border: 1px solid #3b82f6;
+          background: rgba(59, 130, 246, 0.05);
+          box-shadow: 0 20px 50px rgba(59, 130, 246, 0.1);
+        }
+        .review-card-premium:hover {
+          transform: translateY(-8px);
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .card-stars {
+          display: flex;
+          gap: 4px;
+        }
+        .review-text-premium {
+          font-size: 0.95rem; /* Smaller text */
           line-height: 1.6;
           color: #cbd5e1;
-          margin-bottom: 2rem;
-          position: relative;
-          z-index: 2;
+          font-style: italic;
+          margin: 0;
+          flex: 1;
         }
-        .review-footer {
+
+        .review-profile {
           display: flex;
           align-items: center;
           gap: 1rem;
-          margin-top: auto;
+          margin-top: 0.5rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .review-avatar {
-          width: 44px;
-          height: 44px;
+        .profile-avatar {
+          width: 42px;
+          height: 42px;
           border-radius: 50%;
-          border: 2px solid rgba(255,255,255,0.1);
+          object-fit: cover;
+          border: 1px solid rgba(255,255,255,0.1);
         }
-        .review-info {
+        .profile-info {
           display: flex;
           flex-direction: column;
-          flex: 1;
+          gap: 1px;
         }
-        .review-name { font-weight: 700; color: white; font-size: 0.95rem; }
-        .review-role { font-size: 0.8rem; color: #64748b; }
-        .review-stars { display: flex; gap: 2px; color: #fbbf24; }
+        .profile-name {
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: white;
+        }
+        .profile-role {
+          font-size: 0.8rem;
+          color: #64748b;
+          font-weight: 500;
+        }
         
-        @media (max-width: 992px) {
+        @media (max-width: 1100px) {
+          .reviews-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
           .reviews-grid { grid-template-columns: 1fr; }
+          .section-title-premium { font-size: 2.2rem; }
         }
 
         /* TRUSTED SECTION */
