@@ -7,7 +7,7 @@ import { calculateHumanScore } from "@/lib/detector";
 import { detectAIHybrid } from "@/lib/hybrid-detector";
 import { diffWords } from "diff";
 import Cookies from "js-cookie";
-import { LogOut, User } from "lucide-react";
+import { BarChart3, LogOut, Settings2, User, X } from "lucide-react";
 import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -33,6 +33,10 @@ export default function Home() {
   const [persona, setPersona] = useState("standard");
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showDiff, setShowDiff] = useState(false);
+  
+  // Mobile sidebar visibility
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [mobileAnalysisOpen, setMobileAnalysisOpen] = useState(false);
   
   // Hybrid Detection State
   const [isMLDetecting, setIsMLDetecting] = useState(false);
@@ -678,17 +682,102 @@ export default function Home() {
       </div>
 
       {/* Right Panel: Analysis */}
-      <Sidebar 
-        mode="analysis"
-        humanScore={humanScore} 
-        settings={settings} 
-        onSettingChange={handleSettingChange}
-        aiSentencesCount={aiSentences.length}
-        persona={persona}
-        onPersonaChange={setPersona}
-        detectionConfidence={detectionConfidence}
-        detectionMethod={detectionMethod}
-      />
+      <div className={`sidebar-wrapper ${mobileAnalysisOpen ? 'mobile-open' : ''}`}>
+        {mobileAnalysisOpen && <div className="mobile-overlay" onClick={() => setMobileAnalysisOpen(false)} />}
+        <Sidebar 
+          mode="analysis"
+          humanScore={humanScore} 
+          settings={settings} 
+          onSettingChange={handleSettingChange}
+          aiSentencesCount={aiSentences.length}
+          persona={persona}
+          onPersonaChange={setPersona}
+          detectionConfidence={detectionConfidence}
+          detectionMethod={detectionMethod}
+        />
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="mobile-bottom-nav">
+        <button 
+          className={`mobile-nav-btn ${mobileSettingsOpen ? 'active' : ''}`}
+          onClick={() => {
+            setMobileSettingsOpen(!mobileSettingsOpen);
+            setMobileAnalysisOpen(false);
+          }}
+        >
+          <Settings2 size={20} />
+          <span>Settings</span>
+        </button>
+        <button 
+          className="mobile-nav-btn primary"
+          onClick={handleHumanize}
+          disabled={isProcessing}
+        >
+          <span>{isProcessing ? "Processing..." : "Humanize"}</span>
+        </button>
+        <button 
+          className={`mobile-nav-btn ${mobileAnalysisOpen ? 'active' : ''}`}
+          onClick={() => {
+            setMobileAnalysisOpen(!mobileAnalysisOpen);
+            setMobileSettingsOpen(false);
+          }}
+        >
+          <BarChart3 size={20} />
+          <span>Analysis</span>
+        </button>
+      </div>
+
+      {/* Mobile Settings Sidebar Overlay */}
+      {mobileSettingsOpen && (
+        <>
+          <div className="mobile-overlay" onClick={() => setMobileSettingsOpen(false)} />
+          <div className="mobile-sheet-sidebar">
+            <div className="mobile-sheet-header">
+              <h3>Settings</h3>
+              <button onClick={() => setMobileSettingsOpen(false)} className="close-btn">
+                <X size={20} />
+              </button>
+            </div>
+            <Sidebar 
+              mode="settings"
+              humanScore={humanScore} 
+              settings={settings} 
+              onSettingChange={handleSettingChange} 
+              history={history}
+              onRestore={handleRestore}
+              onClearHistory={handleClearHistory}
+              onDeleteHistory={handleDeleteHistoryItem}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Mobile Analysis Sidebar Overlay */}
+      {mobileAnalysisOpen && (
+        <>
+          <div className="mobile-overlay" onClick={() => setMobileAnalysisOpen(false)} />
+          <div className="mobile-sheet-sidebar">
+            <div className="mobile-sheet-header">
+              <h3>AI Analysis</h3>
+              <button onClick={() => setMobileAnalysisOpen(false)} className="close-btn">
+                <X size={20} />
+              </button>
+            </div>
+            <Sidebar 
+              mode="analysis"
+              humanScore={humanScore} 
+              settings={settings} 
+              onSettingChange={handleSettingChange}
+              aiSentencesCount={aiSentences.length}
+              persona={persona}
+              onPersonaChange={setPersona}
+              detectionConfidence={detectionConfidence}
+              detectionMethod={detectionMethod}
+            />
+          </div>
+        </>
+      )}
 
       {isProcessing && (
         <div className="loading-overlay">
@@ -886,11 +975,251 @@ export default function Home() {
            .app-container {
               flex-direction: column;
               height: auto;
+              min-height: 100vh;
            }
            .editors-grid {
               flex-direction: column;
-              height: 800px;
+              height: auto;
+              min-height: 600px;
            }
+        }
+
+        @media (max-width: 1024px) {
+           .app-container {
+              grid-template-columns: 1fr;
+           }
+           .editors-grid {
+              padding: 1rem;
+              gap: 1rem;
+           }
+           .top-bar {
+              padding: 0.8rem 1rem;
+           }
+           .brand h1 { font-size: 1rem; }
+           .action-btn { padding: 0.5rem 1rem; font-size: 0.85rem; }
+        }
+
+        @media (max-width: 768px) {
+           .app-container {
+              padding: 0;
+           }
+           .top-bar {
+              flex-wrap: wrap;
+              gap: 0.8rem;
+              padding: 0.8rem 1rem;
+              height: auto;
+              min-height: var(--nav-height);
+           }
+           .brand {
+              order: 1;
+              flex: 1;
+           }
+           .actions {
+              order: 3;
+              width: 100%;
+              justify-content: center;
+              flex-wrap: wrap;
+              gap: 0.5rem;
+           }
+           .v-divider { display: none; }
+           .user-actions {
+              order: 2;
+           }
+           .action-btn {
+              flex: 1;
+              min-width: 120px;
+              justify-content: center;
+              padding: 0.7rem 0.8rem;
+              font-size: 0.8rem;
+           }
+           .action-btn.outline {
+              display: none;
+           }
+           .editors-grid {
+              flex-direction: column;
+              padding: 0.75rem;
+              gap: 0.75rem;
+              min-height: calc(100vh - 140px);
+           }
+           .profile-btn, .logout-icon-btn {
+              width: 32px;
+              height: 32px;
+           }
+        }
+
+        @media (max-width: 480px) {
+           .top-bar {
+              padding: 0.6rem 0.75rem;
+           }
+           .brand h1 {
+              font-size: 0.9rem;
+           }
+           .actions {
+              gap: 0.4rem;
+           }
+           .action-btn {
+              padding: 0.6rem 0.6rem;
+              font-size: 0.75rem;
+              min-width: 100px;
+           }
+           .editors-grid {
+              padding: 0.5rem;
+              gap: 0.5rem;
+           }
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+           .action-btn:hover {
+              transform: none;
+              box-shadow: none;
+           }
+        }
+
+        /* ======================================
+           MOBILE BOTTOM NAVIGATION
+           ====================================== */
+        .mobile-bottom-nav {
+          display: none;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: var(--bg-app);
+          border-top: 1px solid var(--border-subtle);
+          padding: 0.5rem 1rem;
+          padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+          z-index: 999;
+          gap: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+          .mobile-bottom-nav {
+            display: flex;
+          }
+          .editors-grid {
+            padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+
+        .mobile-nav-btn {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.25rem;
+          padding: 0.5rem;
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          font-size: 0.7rem;
+          border-radius: 8px;
+          transition: all 0.2s;
+          min-height: 56px;
+        }
+
+        .mobile-nav-btn:active {
+          background: var(--bg-surface);
+        }
+
+        .mobile-nav-btn.active {
+          color: var(--primary);
+          background: var(--primary-faint);
+        }
+
+        .mobile-nav-btn.primary {
+          background: var(--primary);
+          color: white;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 0.85rem;
+        }
+
+        .mobile-nav-btn.primary:disabled {
+          opacity: 0.6;
+        }
+
+        /* ======================================
+           MOBILE SHEET SIDEBAR
+           ====================================== */
+        .mobile-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(4px);
+          z-index: 1000;
+          animation: fadeIn 0.2s ease forwards;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .mobile-sheet-sidebar {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 75vh;
+          max-height: 75vh;
+          background: var(--bg-app);
+          border-radius: 20px 20px 0 0;
+          z-index: 1001;
+          display: flex;
+          flex-direction: column;
+          animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          overflow: hidden;
+        }
+
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+
+        .mobile-sheet-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem 1.5rem;
+          border-bottom: 1px solid var(--border-subtle);
+          flex-shrink: 0;
+        }
+
+        .mobile-sheet-header h3 {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .mobile-sheet-header .close-btn {
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-surface);
+          border: none;
+          border-radius: 50%;
+          color: var(--text-secondary);
+          cursor: pointer;
+        }
+
+        .mobile-sheet-sidebar :global(.sidebar) {
+          width: 100% !important;
+          height: 100% !important;
+          border: none !important;
+          display: flex !important;
+        }
+
+        /* Desktop: hide mobile elements */
+        @media (min-width: 1025px) {
+          .mobile-bottom-nav,
+          .mobile-sheet-sidebar,
+          .mobile-overlay {
+            display: none !important;
+          }
         }
       `}</style>
     </main>

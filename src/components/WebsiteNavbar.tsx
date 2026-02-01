@@ -317,6 +317,26 @@ export const WebsiteNavbar = () => {
         @media (max-width: 900px) {
            .nav-links { display: none; }
            .mobile-menu-btn { display: flex; }
+           .icon-group { display: none; }
+           .guest-actions { gap: 0.8rem; }
+           .login-link-btn { display: none; }
+           .signup-nav-btn { padding: 0.4rem 1rem; font-size: 0.75rem; }
+           .logout-nav-btn { width: 28px; height: 28px; }
+           .user-profile-circle { width: 28px; height: 28px; }
+        }
+
+        @media (max-width: 600px) {
+           .web-navbar { padding: 0 1rem; height: 70px; }
+           .nav-container { 
+             height: 48px; 
+             padding: 0 1rem;
+             max-width: 100%;
+           }
+           .brand-logo-mini { width: 28px; height: 28px; }
+           .brand-name { font-size: 1rem; }
+           .mobile-menu-btn { width: 32px; height: 32px; }
+           .signup-nav-btn { display: none; }
+           .guest-actions { gap: 0.5rem; }
         }
 
         .mobile-menu-btn {
@@ -329,15 +349,17 @@ export const WebsiteNavbar = () => {
 
         .mobile-menu {
            position: fixed;
-           top: 80px; left: 0; right: 0;
+           top: 70px; left: 0; right: 0;
+           bottom: 0;
            background: #020617;
-           border-bottom: 1px solid rgba(255,255,255,0.05);
-           padding: 2rem;
+           border-top: 1px solid rgba(255,255,255,0.05);
+           padding: 1.5rem;
            display: flex;
            flex-direction: column;
-           gap: 1.5rem;
+           gap: 0;
            z-index: 1999;
-           box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+           overflow-y: auto;
+           -webkit-overflow-scrolling: touch;
         }
 
         .mobile-link {
@@ -345,24 +367,38 @@ export const WebsiteNavbar = () => {
            font-weight: 600;
            color: var(--text-secondary);
            text-decoration: none;
-           padding: 0.5rem 0;
+           padding: 1rem 0;
            border-bottom: 1px solid rgba(255,255,255,0.05);
+           display: flex;
+           align-items: center;
+           min-height: 56px;
         }
         .mobile-link.active { color: white; border-color: #3b82f6; }
 
         .mobile-pro-badge {
            display: flex; align-items: center; gap: 0.5rem;
            color: #f59e0b; font-weight: 700; font-size: 0.9rem;
-           margin-top: 1rem;
+           margin-top: 1.5rem;
+           padding: 1rem;
+           background: rgba(245, 158, 11, 0.1);
+           border-radius: 12px;
         }
 
         .logout-btn {
            display: flex; align-items: center; gap: 0.8rem;
            color: #ef4444; border-color: rgba(239, 68, 68, 0.2);
-           margin-top: 1rem;
+           margin-top: auto;
            width: 100%; text-align: left; background: transparent; border: none;
-           border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;
+           border-top: 1px solid rgba(255,255,255,0.05); padding: 1.5rem 0;
            cursor: pointer;
+           min-height: 56px;
+        }
+
+        /* Mobile CTA in menu */
+        .mobile-menu::after {
+           content: '';
+           display: block;
+           padding-bottom: env(safe-area-inset-bottom, 20px);
         }
       `}</style>
     </nav>

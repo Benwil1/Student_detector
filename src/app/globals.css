@@ -196,3 +196,132 @@ textarea, input {
 .floating-effect {
   animation: float 10s ease-in-out infinite;
 }
+
+/* ============================================
+   MOBILE RESPONSIVE FOUNDATION
+   ============================================ */
+
+/* Mobile-first adjustments */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width-left: 240px;
+    --sidebar-width-right: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --nav-height: 56px;
+    --sidebar-width-left: 100%;
+    --sidebar-width-right: 100%;
+  }
+  
+  body {
+    font-size: 14px;
+  }
+  
+  h1, h2, h3 {
+    word-wrap: break-word;
+    hyphens: auto;
+  }
+  
+  /* Better touch targets */
+  button, a, input, textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevent iOS zoom on focus */
+  }
+  
+  /* Hide scrollbars on mobile for cleaner look */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+  
+  .btn-primary, .btn-secondary {
+    padding: 0.8rem 1.4rem !important;
+    font-size: 0.9rem !important;
+    width: 100%;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+  }
+  
+  body {
+    font-size: 13px;
+  }
+}
+
+/* Mobile Bottom Sheet Animation */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+.mobile-sheet {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mobile-sheet.closing {
+  animation: slideDown 0.2s ease-in forwards;
+}
+
+/* Mobile overlay backdrop */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 998;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+/* Safe area padding for notched devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .mobile-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Stack buttons on mobile */
+@media (max-width: 640px) {
+  .hero-actions,
+  .button-group {
+    flex-direction: column !important;
+    width: 100%;
+    gap: 1rem !important;
+  }
+}
+
+/* Mobile-friendly form inputs */
+@media (max-width: 768px) {
+  textarea, input[type="text"], input[type="email"] {
+    font-size: 16px !important; /* Prevents iOS zoom */
+    padding: 1rem !important;
+  }
+}
+
+/* Touch-friendly spacing */
+@media (hover: none) and (pointer: coarse) {
+  button, a {
+    padding-block: 0.75rem;
+  }
+  
+  .check-row {
+    padding: 0.5rem 0;
+  }
+}

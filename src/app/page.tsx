@@ -1248,6 +1248,117 @@ export default function LandingPage() {
           .hero-visual { margin-top: 4rem; justify-content: center; }
           .why-content, .partner-content { grid-template-columns: 1fr; gap: 4rem; text-align: center; }
           .why-right, .partner-left { justify-content: center; order: -1; }
+          .footer-top { grid-template-columns: 1fr 1fr; gap: 3rem; }
+        }
+
+        @media (max-width: 1024px) {
+          .container { padding: 0 2rem; }
+          .hero { padding: 5rem 0 4rem; min-height: auto; }
+          .hero-container { padding: 0 2rem; gap: 3rem; }
+          h1 { font-size: 3.5rem; }
+          .hero-subtitle { font-size: 1.1rem; }
+          .mockup-main { max-width: 500px; padding: 1.5rem; }
+          .why-choose { padding: 5rem 0 3rem; }
+          .analysis-card { max-width: 100%; }
+          .section-title-large { font-size: 2.5rem; }
+          .reviews-section { padding: 3rem 0 5rem; }
+          .section-title-premium { font-size: 2.2rem; }
+        }
+
+        @media (max-width: 768px) {
+          .container { padding: 0 1.25rem; }
+          .hero { padding: 4rem 0 3rem; }
+          .hero-container { padding: 0 1.25rem; gap: 2rem; }
+          h1 { font-size: 2.5rem; line-height: 1.1; }
+          .hero-pill { font-size: 0.7rem; padding: 0.4rem 0.8rem; }
+          .hero-subtitle { font-size: 1rem; max-width: 100%; }
+          .hero-actions { flex-direction: column; width: 100%; gap: 1rem; }
+          .hero-visual { display: none; }
+          
+          .trusted-section { padding: 2.5rem 0; }
+          .trusted-title { font-size: 1.6rem; }
+          .trusted-subtitle { font-size: 0.85rem; margin-bottom: 2rem; }
+          .logos-track { gap: 2.5rem; }
+          .uni-badge-text { transform: scale(0.85); }
+          
+          .how-to-section { padding: 3rem 0 4rem; }
+          .how-to-title { font-size: 1.8rem; }
+          .how-to-desc { font-size: 0.95rem; }
+          
+          .why-choose { padding: 3rem 0 2rem; }
+          .why-content { gap: 2rem; }
+          .why-visual-panel { order: 2; }
+          .why-text-panel { order: 1; }
+          .section-title-large { font-size: 2rem; }
+          .section-desc-premium { font-size: 0.9rem; }
+          .ac-main-visual { height: 200px; }
+          .ac-feature-grid { gap: 0.6rem; }
+          .ac-feat-item { padding: 0.6rem; }
+          .ac-feat-item h5 { font-size: 0.75rem; }
+          .ac-feat-item p { font-size: 0.65rem; }
+          .ac-text-preview { padding: 1.2rem; }
+          .ac-text-preview h4 { font-size: 0.95rem; }
+          .ac-text-preview p { font-size: 0.8rem; }
+          .deco-element { display: none; }
+          .trust-stats-mini { flex-direction: column; gap: 1rem; align-items: center; }
+          
+          .reviews-section { padding: 2.5rem 0 4rem; }
+          .section-title-premium { font-size: 1.8rem; }
+          .section-subtitle-premium { font-size: 0.9rem; }
+          .review-card-premium { width: 300px; padding: 1.5rem 1.2rem; }
+          .review-text-premium { font-size: 0.85rem; }
+          
+          .footer { padding: 4rem 0 2rem; }
+          .footer-top { grid-template-columns: 1fr; gap: 2.5rem; text-align: center; }
+          .footer-brand { display: flex; flex-direction: column; align-items: center; }
+          .social-links { justify-content: center; }
+          .footer-cols { justify-items: center; }
+          .f-col { text-align: center; }
+          .footer-news { max-width: 320px; margin: 0 auto; }
+          .f-logo { justify-content: center; }
+        }
+
+        @media (max-width: 480px) {
+          .container { padding: 0 1rem; }
+          h1 { font-size: 2rem; }
+          .hero-pill { font-size: 0.65rem; }
+          .hero-subtitle { font-size: 0.9rem; line-height: 1.5; }
+          
+          .trusted-title { font-size: 1.4rem; }
+          .logos-carousel-wrapper { mask-image: none; -webkit-mask-image: none; }
+          
+          .how-to-title { font-size: 1.5rem; }
+          .how-to-cta { width: 100%; justify-content: center; }
+          
+          .section-title-large { font-size: 1.6rem; }
+          .btn-premium-large { width: 100%; justify-content: center; padding: 0.9rem 1.5rem; font-size: 0.9rem; }
+          .analysis-card { border-radius: 16px; }
+          .ac-header { padding: 0.8rem 1rem; }
+          .ac-tabs { gap: 0.8rem; }
+          .ac-tab { font-size: 0.65rem; }
+          
+          .testimonials-carousel-wrapper { mask-image: none; -webkit-mask-image: none; padding: 1rem 0; }
+          .review-card-premium { width: 280px; padding: 1.2rem 1rem; }
+          .profile-avatar { width: 36px; height: 36px; }
+          .profile-name { font-size: 0.8rem; }
+          .profile-role { font-size: 0.7rem; }
+          
+          .footer-bottom { padding-top: 2rem; font-size: 0.8rem; }
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+          .review-card-premium:hover,
+          .ac-feat-item:hover,
+          .uni-badge-text:hover {
+            transform: none;
+          }
+          
+          .btn-primary:hover,
+          .btn-secondary:hover,
+          .btn-premium-large:hover {
+            transform: none;
+          }
         }
       `}</style>
     </div>

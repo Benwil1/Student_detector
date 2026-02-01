@@ -355,6 +355,80 @@ export const Editor: React.FC<EditorProps> = ({
         .readonly {
           background-color: rgba(0,0,0,0.2); 
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+          .editor-wrapper {
+            min-height: 250px;
+          }
+          
+          .header {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.6rem 0.8rem;
+          }
+          
+          .header-left {
+            flex: 1;
+            min-width: 0;
+          }
+          
+          .label {
+            font-size: 0.7rem;
+          }
+          
+          .toolbar {
+            gap: 0.4rem;
+          }
+          
+          .action-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+          }
+          
+          .content-area {
+            font-size: 16px; /* Prevent iOS zoom */
+            padding: 1rem;
+            min-height: 180px;
+          }
+          
+          .status-bar {
+            padding: 0.4rem 0.8rem;
+          }
+          
+          .status {
+            font-size: 0.65rem;
+          }
+          
+          .score-badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+          }
+          
+          .icon-btn-label {
+            font-size: 0.65rem;
+          }
+          
+          .icon-btn-label span {
+            display: none;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .header {
+            padding: 0.5rem 0.6rem;
+          }
+          
+          .content-area {
+            padding: 0.75rem;
+          }
+          
+          .action-btn {
+            width: 28px;
+            height: 28px;
+          }
+        }
       `}</style>
     </div>
   );

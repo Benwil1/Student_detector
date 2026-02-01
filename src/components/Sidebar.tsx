@@ -1162,6 +1162,139 @@ export const Sidebar: React.FC<SidebarProps> = ({
             border-color: var(--danger);
             background: rgba(239, 68, 68, 0.05);
         }
+
+        /* ==============================
+           MOBILE RESPONSIVE STYLES
+           ============================== */
+        @media (max-width: 1024px) {
+          .sidebar {
+            display: none;
+          }
+        }
+
+        /* Mobile Bottom Sheet Mode */
+        @media (max-width: 768px) {
+          .sidebar.mobile-visible {
+            display: flex;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            top: auto;
+            width: 100%;
+            height: 70vh;
+            max-height: 70vh;
+            border-radius: 20px 20px 0 0;
+            border: none;
+            border-top: 1px solid var(--border-subtle);
+            z-index: 1000;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+          }
+          
+          .sidebar.mobile-visible .sidebar-content {
+            padding: 1.5rem;
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 20px));
+          }
+
+          .sidebar.mobile-visible .section-header {
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+          }
+
+          .sidebar.mobile-visible .section-header h3 {
+            font-size: 1.1rem;
+          }
+
+          /* Touch-friendly toggle buttons */
+          .sidebar.mobile-visible .check-row {
+            padding: 0.8rem 0;
+            min-height: 56px;
+          }
+
+          .sidebar.mobile-visible .check-row input {
+            width: 44px;
+            height: 24px;
+          }
+
+          .sidebar.mobile-visible .check-row input::after {
+            width: 18px;
+            height: 18px;
+          }
+
+          .sidebar.mobile-visible .check-row input:checked::after {
+            transform: translateX(18px);
+          }
+
+          .sidebar.mobile-visible .persona-card {
+            padding: 1rem;
+            min-height: 60px;
+          }
+
+          .sidebar.mobile-visible .tab-switcher-container {
+            gap: 0.5rem;
+          }
+
+          .sidebar.mobile-visible .tab-switch-btn {
+            padding: 0.6rem 0.8rem;
+            font-size: 0.8rem;
+            flex: 1;
+            text-align: center;
+          }
+
+          /* Gauge adjustments for mobile */
+          .sidebar.mobile-visible .gauge-container {
+            max-width: 200px;
+            margin: 0 auto;
+          }
+
+          .sidebar.mobile-visible .stats-grid-new {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+          }
+
+          .sidebar.mobile-visible .stat-item {
+            padding: 0.8rem;
+          }
+
+          .sidebar.mobile-visible .stat-val-lg {
+            font-size: 1.1rem;
+          }
+
+          .sidebar.mobile-visible .breakdown-section-new {
+            margin-top: 1rem;
+          }
+
+          .sidebar.mobile-visible .breakdown-row {
+            padding: 0.6rem 0;
+          }
+
+          /* Badge cloud on mobile */
+          .sidebar.mobile-visible .badge-cloud {
+            gap: 0.4rem;
+          }
+
+          .sidebar.mobile-visible .det-badge {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.65rem;
+          }
+
+          /* History cards on mobile */
+          .sidebar.mobile-visible .history-side-card {
+            padding: 1rem;
+          }
+
+          /* Hide the TruthScan badge on mobile sheet */
+          .sidebar.mobile-visible .truthscan-badge {
+            display: none;
+          }
+        }
+
+        /* Slide up animation for mobile */
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
       `}</style>
     </aside>
   );
