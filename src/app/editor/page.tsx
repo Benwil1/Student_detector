@@ -4,7 +4,7 @@ import { Editor } from "@/components/Editor";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Sidebar } from "@/components/Sidebar";
 import { calculateHumanScore } from "@/lib/detector";
-import { detectAIClient } from "@/lib/hybrid-detector";
+import { detectAIHybrid } from "@/lib/hybrid-detector";
 import { diffWords } from "diff";
 import Cookies from "js-cookie";
 import { LogOut, User } from "lucide-react";
