@@ -235,14 +235,14 @@ export async function POST(req: Request) {
     
     // A. ARTICLE DROPPING (Common in Slavic/Asian native speakers)
     // "The car is fast" -> "Car is fast"
-    processedText = processedText.replace(/\b(the|a|an)\s+([a-z]+)\b/gi, (match, art, noun) => {
+    processedText = processedText.replace(/\b(the|a|an)\s+([a-z]+)\b/gi, (match: string, art: string, noun: string) => {
          return Math.random() > 0.75 ? noun : match; 
     });
 
     // B. PREPOSITION SWAPPING
     // "Interested in" -> "Interested on"
     const prepMap: Record<string, string> = { " in ": " on ", " on ": " at ", " at ": " in ", " for ": " to ", " to ": " for " };
-    processedText = processedText.replace(/\s(in|on|at|for|to)\s/g, (match) => {
+    processedText = processedText.replace(/\s(in|on|at|for|to)\s/g, (match: string) => {
          return Math.random() > 0.85 ? prepMap[match] || match : match;
     });
 
@@ -256,7 +256,7 @@ export async function POST(req: Request) {
 
     // D. VERB TENSE SLIPS (Third Person Singular)
     // "He thinks" -> "He think"
-    processedText = processedText.replace(/\b(he|she|it)\s+([a-z]+)s\b/g, (match, pro, verb) => {
+    processedText = processedText.replace(/\b(he|she|it)\s+([a-z]+)s\b/g, (match: string, pro: string, verb: string) => {
          return Math.random() > 0.7 ? `${pro} ${verb}` : match;
     });
 
@@ -353,7 +353,7 @@ export async function POST(req: Request) {
         // A. PASSIVE TO ACTIVE (Broader Regex)
         // "was [verb] by [actor]"
         // Captures "was [seen/done/played] by [the man/him]"
-        processedText = processedText.replace(/\bwas\s+(\w+)\s+by\s+([\w\s]+?)\b((?=[,.])|\s)/g, (match, verb, actor, punct) => {
+        processedText = processedText.replace(/\bwas\s+(\w+)\s+by\s+([\w\s]+?)\b((?=[,.])|\s)/g, (match: string, verb: string, actor: string, punct: string) => {
              return Math.random() > 0.6 ? `${actor} ${verb}${punct}` : match;
         });
 
@@ -362,38 +362,38 @@ export async function POST(req: Request) {
         // "The car is red." -> "The car is like, red."
         if (config.intensity > 70) {
             const voidWords = ["like,", "basically,", "literally,", "actually,", "sort of", "i guess", "honestly,"];
-            processedText = processedText.replace(/(\s\w+)\s/g, (match) => {
+            processedText = processedText.replace(/(\s\w+)\s/g, (match: string) => {
                 return Math.random() > 0.92 ? `${match} ${voidWords[Math.floor(Math.random() * voidWords.length)]} ` : match;
             });
         }
 
         // C. "WHICH" HUNT (Kill Relative Clauses)
         // "The system, which is fast, works well." -> "The system is fast. It works well."
-        processedText = processedText.replace(/,?\s*which\s+(is|are|was|were)\s+([\w\s]+),?/g, (match, copula, adj) => {
+        processedText = processedText.replace(/,?\s*which\s+(is|are|was|were)\s+([\w\s]+),?/g, (match: string, copula: string, adj: string) => {
              return Math.random() > 0.6 ? `. It ${copula} ${adj}. ` : match;
         });
         
         // C. SENTENCE SPLITTING at Conjunctions
         // "We went there and we saw it." -> "We went there. We saw it."
-        processedText = processedText.replace(/,?\s+and\s+(we|I|they|he|she|it)\s+/g, (match, pronoun) => {
+        processedText = processedText.replace(/,?\s+and\s+(we|I|they|he|she|it)\s+/g, (match: string, pronoun: string) => {
              return Math.random() > 0.7 ? `. ${pronoun.charAt(0).toUpperCase() + pronoun.slice(1)} ` : match;
         });
 
         // D. TOPIC SCRAMBLER (Disrupts Semantic Flow)
         // "The result is valid because the data is good." -> "Because the data is good, the result is valid."
         // This reverses the vector flow.
-        processedText = processedText.replace(/([A-Z][a-z\s]+)\s+because\s+([a-z\s]+)\./g, (match, p1, p2) => {
+        processedText = processedText.replace(/([A-Z][a-z\s]+)\s+because\s+([a-z\s]+)\./g, (match: string, p1: string, p2: string) => {
              return Math.random() > 0.5 ? `Since ${p2.trim()}, ${p1.toLowerCase().trim()}.` : match;
         });
         
         // "Method A is better than Method B." -> "Compared to Method B, Method A is better."
-        processedText = processedText.replace(/([A-Z][a-z\s]+)\s+is better than\s+([a-z\s]+)\./g, (match, p1, p2) => {
+        processedText = processedText.replace(/([A-Z][a-z\s]+)\s+is better than\s+([a-z\s]+)\./g, (match: string, p1: string, p2: string) => {
              return `Compared to ${p2.trim()}, ${p1.toLowerCase().trim()}.`;
         });
 
         // H. MOOD INJECTOR (Kill Neutral Tone) (INCREASED AGGRESSION)
         const moods = ["Surprisingly,", "Sadly,", "Luckily,", "Weirdly,", "Thankfully,", "Ironially,", "Honestly,"];
-        processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match, p1, p2) => {
+        processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match: string, p1: string, p2: string) => {
              if (Math.random() > 0.4) {
                  const mood = moods[Math.floor(Math.random() * moods.length)];
                  return `${p1} ${mood} ${p2.toLowerCase()}`;
@@ -404,26 +404,26 @@ export async function POST(req: Request) {
         // K. REDUNDANCY LOOPER (The "Human Inefficiency" Engine)
         // AI is efficient. Humans repeat themselves for emphasis.
         // "It was hard." -> "It was hard. I mean, really hard."
-        processedText = processedText.replace(/(\w+)\s+(was|is|are|were)\s+(very|really|quite)?\s?([a-z]+)\./g, (match, subj, copula, adv, adj) => {
+        processedText = processedText.replace(/(\w+)\s+(was|is|are|were)\s+(very|really|quite)?\s?([a-z]+)\./g, (match: string, subj: string, copula: string, adv: string, adj: string) => {
              return Math.random() > 0.6 ? `${match} I mean, ${adj}.` : match; 
         });
 
         // I. POSSESSIVE OPTIMIZER (The "Of" Killer)
         // AI: "The conclusion of the paper" (Structure: The A of B)
         // Human: "The paper's conclusion" (Structure: B's A)
-        processedText = processedText.replace(/\bthe\s+([a-z]+)\s+of\s+the\s+([a-z]+)\b/g, (match, noun1, noun2) => {
+        processedText = processedText.replace(/\bthe\s+([a-z]+)\s+of\s+the\s+([a-z]+)\b/g, (match: string, noun1: string, noun2: string) => {
              return Math.random() > 0.5 ? `the ${noun2}'s ${noun1}` : match;
         });
         
         // J. SUBJECTIVITY BREAKER (Mid-Sentence Interrupts)
         // "The data shows that..." -> "The data, I think, shows that..."
         const interrupts = [", I think,", ", like,", ", technically,", ", I guess,"];
-        processedText = processedText.replace(/\s+(is|are|was|were|shows|show|means)\s+/g, (match) => {
+        processedText = processedText.replace(/\s+(is|are|was|were|shows|show|means)\s+/g, (match: string) => {
              return Math.random() > 0.6 ? `${match.trim()}${interrupts[Math.floor(Math.random() * interrupts.length)]} ` : match;
         });
 
         // E. PARAGRAPH EXPLOSION (Visual Structure Breaker)
-        processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match, p1, p2) => {
+        processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match: string, p1: string, p2: string) => {
              return Math.random() > 0.65 ? `${p1}\n\n${p2}` : match;
         });
 
@@ -434,7 +434,7 @@ export async function POST(req: Request) {
             " weirdly enough.", " I was reading about this yesterday.", 
             " strangely.", " for real though."
         ];
-        processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match, p1, p2) => {
+        processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match: string, p1: string, p2: string) => {
              // 25% chance to inject a personal thought between sentences
              if (Math.random() > 0.75) {
                  const thought = personalThoughts[Math.floor(Math.random() * personalThoughts.length)];
@@ -446,7 +446,7 @@ export async function POST(req: Request) {
         // G. SENTENCE CHUNKING (The "Junk" Rhythm)
         // Breaks flow into "Staccato" chunks.
         // "I went there because it was fun." -> "I went there. It was fun."
-        processedText = processedText.replace(/\s+(because|and|but|so)\s+/g, (match) => {
+        processedText = processedText.replace(/\s+(because|and|but|so)\s+/g, (match: string) => {
              return Math.random() > 0.6 ? ". " : match;
         });
         
@@ -471,33 +471,6 @@ export async function POST(req: Request) {
     // This targets the "Linear Flow" that the detector punishes.
     if ((config.structure || config.burst) && persona !== "academic") {
         
-        // A. Break "Connector Overload" (Machine Balance)
-        // AI: "Therefore, x is true. However, y is false." -> Human: "So x is true. But y is false."
-        const connectors = ["Therefore", "However", "Consequently", "Thus", "In addition", "For instance"];
-        connectors.forEach(c => {
-             const regex = new RegExp(`\\b${c},`, "g");
-             processedText = processedText.replace(regex, (match) => {
-                 const replacements = ["So", "But", "Also", "Plus", "Like", "And"];
-                 return Math.random() > 0.6 ? replacements[Math.floor(Math.random() * replacements.length)] : match;
-             });
-        });
-
-        // B. "Spiky" Sentence Lengths (Counters Complexity Slope)
-        // Randomly chop long sentences to create "dips" in the complexity graph
-        processedText = processedText.replace(/([a-z])\s+(which|that|who)\s+/g, (match, p1, p2) => {
-            return Math.random() > 0.7 ? `${p1}. ${p2.charAt(0).toUpperCase() + p2.slice(1)} ` : match;
-        });
-
-        // C. Semantic Drift Injection (Confuses Vector Analysis)
-        // Injects "tangential" thoughts to break linear topic flow.
-        const driftPhrases = [
-            " honestly,", " came to mind that", " basically,", " if you think about it,",
-            " simply put,", " in a way,", " I guess,"
-        ];
-        processedText = processedText.replace(/\.\s([A-Z])/g, (match, p1) => {
-            if (Math.random() > 0.85) {
-               const phrase = driftPhrases[Math.floor(Math.random() * driftPhrases.length)];
-               return `. ${phrase.charAt(0).toUpperCase() + phrase.slice(1)} ${p1.toLowerCase()}`; 
             }
             return match;
         });
