@@ -471,20 +471,23 @@ export async function POST(req: Request) {
     // This targets the "Linear Flow" that the detector punishes.
     if ((config.structure || config.burst) && persona !== "academic") {
         
-            }
-            return match;
+        // A. RELATIVE CLAUSE KILLER
+        processedText = processedText.replace(/, which (is|was|are|were) ([a-z\s]+),/g, (match: string, copula: string, adj: string) => {
+             return `. It ${copula} ${adj}.`;
         });
 
-        // D. Clause Shuffling (Disrupts S-V-O patterns)
-        // Flips "Subject Verb because Reason" -> "Because Reason, Subject Verb"
-        processedText = processedText.replace(/([A-Z][a-z\s]+)\s+because\s+([a-z\s.,]+)/g, (match, p1, p2) => {
+        // B. PASSIVE VOICE DESTROYER
+        processedText = processedText.replace(/([a-z]+) (was|were) (done|seen|heard|made) by ([a-z]+)/g, (match: string, obj: string, copula: string, verb: string, subj: string) => {
+             return `${subj} ${verb} ${obj}`;
+        });
+        
+        // C. CLAUSE SHUFFLING (Legacy)
+        processedText = processedText.replace(/([A-Z][a-z\s]+)\s+because\s+([a-z\s.,]+)/g, (match: string, p1: string, p2: string) => {
             return Math.random() > 0.7 ? `Because ${p2.trim()}, ${p1.toLowerCase().trim()}` : match;
         });
-
-        // E. Fragment Injection (Disrupts Sentence Completeness)
-        // AI writes complete sentences. Humans write fragments.
-        // "The data shows X." -> "The data? It shows X."
-        processedText = processedText.replace(/([A-Z][a-z]+)\s+(shows|reveals|demonstrates|indicates)\s+/g, (match, p1, p2) => {
+        
+        // D. FRAGMENT INJECTION (Legacy)
+        processedText = processedText.replace(/([A-Z][a-z]+)\s+(shows|reveals|demonstrates|indicates)\s+/g, (match: string, p1: string, p2: string) => {
             return Math.random() > 0.7 ? `${p1}? It ${p2} ` : match;
         });
     }
