@@ -1,7 +1,8 @@
 "use client";
 
 import Cookies from "js-cookie";
-import { Bell, Crown, LogIn, LogOut, Menu, Moon, User, X, Zap } from "lucide-react";
+import { Bell, Crown, LogIn, LogOut, Menu, Moon, User, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -27,9 +28,7 @@ export const WebsiteNavbar = () => {
         {/* Logo Left */}
         <Link href="/" className="nav-brand">
           <div className="brand-inner">
-            <div className="brand-logo-mini">
-              <Zap size={16} fill="currentColor" />
-            </div>
+            <Image src="/final-logo-v2.png" alt="HumanizerAI" width={32} height={32} className="brand-logo-img" />
             <span className="brand-name">Humanizer<span className="blue">AI</span></span>
           </div>
         </Link>
@@ -139,18 +138,11 @@ export const WebsiteNavbar = () => {
            text-decoration: none !important;
         }
 
-        .brand-logo-mini {
+        .brand-logo-img {
           width: 32px;
           height: 32px;
-          background: #3b82f6;
-          color: white;
           border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
           flex-shrink: 0;
-          margin: 0;
         }
 
         .brand-name {
@@ -332,7 +324,7 @@ export const WebsiteNavbar = () => {
              padding: 0 1rem;
              max-width: 100%;
            }
-           .brand-logo-mini { width: 28px; height: 28px; }
+           .brand-logo-img { width: 28px; height: 28px; }
            .brand-name { font-size: 1rem; }
            .mobile-menu-btn { width: 32px; height: 32px; }
            .signup-nav-btn { display: none; }

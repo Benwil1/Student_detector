@@ -28,6 +28,7 @@ interface SidebarProps {
   // Hybrid Detection Props
   detectionConfidence?: number | null;
   detectionMethod?: 'heuristic' | 'ml' | 'hybrid';
+  className?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -44,7 +45,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onClearHistory,
     onDeleteHistory,
     detectionConfidence = null,
-    detectionMethod = 'heuristic'
+    detectionMethod = 'heuristic',
+    className = ""
 }) => {
   const [isCompact, setIsCompact] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(mode === "analysis" ? "detector" : "config");
@@ -66,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const percentage = humanScore !== null ? humanScore : 0;
 
   return (
-    <aside className={`sidebar sidebar-${mode} ${isCompact ? 'compact' : ''}`}>
+    <aside className={`sidebar ${className} sidebar-${mode} ${isCompact ? 'compact' : ''}`}>
       {mode === "analysis" ? (
         <div className="sidebar-content animate-fade-in" style={{ padding: isCompact ? '0.5rem' : '1rem' }}>
              

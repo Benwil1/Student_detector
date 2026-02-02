@@ -2,12 +2,15 @@
 
 import { Editor } from "@/components/Editor";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { MobileFloatingActions, MobileToast } from "@/components/MobileFloatingActions";
+import { MobileProgressIndicator } from "@/components/MobileUI";
 import { Sidebar } from "@/components/Sidebar";
 import { calculateHumanScore } from "@/lib/detector";
 import { detectAIHybrid } from "@/lib/hybrid-detector";
 import { diffWords } from "diff";
 import Cookies from "js-cookie";
-import { BarChart3, LogOut, Settings2, User, X } from "lucide-react";
+import { BarChart3, LogOut, Settings2, Share2, Sparkles, User, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -42,6 +45,46 @@ export default function Home() {
   const [isMLDetecting, setIsMLDetecting] = useState(false);
   const [detectionConfidence, setDetectionConfidence] = useState<number | null>(null);
   const [detectionMethod, setDetectionMethod] = useState<'heuristic' | 'ml' | 'hybrid'>('heuristic');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'processing'; visible: boolean }>({
+    message: '',
+    type: 'info',
+    visible: false
+  });
+
+  // Scroll tracking for Premium Morphing Nav
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollDiff = currentScrollY - lastScrollY;
+      
+      // If scrolling down > 10px, hide. If scrolling up, show.
+      // Always show if near top (< 50px)
+      if (currentScrollY < 50) {
+        setIsNavVisible(true);
+      } else if (scrollDiff > 10) {
+        setIsNavVisible(false);
+      } else if (scrollDiff < -10) {
+        setIsNavVisible(true);
+      }
+      
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'processing') => {
+    setToast({ message, type, visible: true });
+  }, []);
+
+  const hideToast = useCallback(() => {
+    setToast(prev => ({ ...prev, visible: false }));
+  }, []);
 
   const [settings, setSettings] = useState({
     vocab: true,
@@ -605,55 +648,108 @@ export default function Home() {
       {/* Center Panel: Workspace */}
       <div className="workspace-section">
         <header className="workspace-header">
-           <Link href="/" className="brand">
-              <h1>Humanizer<span style={{ color: "var(--accent-orange)" }}>AI</span></h1>
+           <Link href="/" className="brand" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px', height: '100%', textDecoration: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                <Image 
+                  src="/final-logo-v2.png" 
+                  alt="HumanizerAI" 
+                  width={34} 
+                  height={34} 
+                  className="brand-logo" 
+                  style={{ display: 'block', objectFit: 'contain' }}
+                />
+              </div>
+              <h1 style={{ 
+                margin: 0, 
+                padding: 0, 
+                lineHeight: 1, 
+                fontSize: '1.25rem', 
+                fontWeight: 800, 
+                color: 'white', 
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                Humanizer<span style={{ color: "var(--accent-orange)" }}>AI</span>
+              </h1>
            </Link>
-           <div className="actions">
-              {outputText && (
-                <button 
-                  className={`action-btn outline ${showDiff ? 'active' : ''}`} 
-                  onClick={() => setShowDiff(!showDiff)}
-                  style={showDiff ? { background: 'var(--primary-faint)', borderColor: 'var(--primary)', color: 'var(--primary)', fontWeight: 600 } : {}}
-                >
-                   {showDiff ? "Show Original" : "Compare Changes"}
-                </button>
-              )}
-              <button className="action-btn primary" onClick={handleHumanize} disabled={isProcessing}>
-                 {isProcessing ? (
-                    <span className="flex items-center gap-2">
-                      <LoadingSpinner size="sm" color="white" />
-                      <span>Optimizing...</span>
-                    </span>
-                 ) : "Humanize Text"}
-              </button>
-              <button 
-                className="action-btn ml-scan" 
-                onClick={handleScan} 
-                disabled={isMLDetecting || (!inputText && !outputText)}
-                title="Check for AI"
-              >
-                 {isMLDetecting ? "Checking..." : "🛡️ Check for AI"}
-              </button>
-              <button className="action-btn outline" onClick={handleExport}>Export</button>
+                     <div className="right-section" style={{ display: 'flex', alignItems: 'center', gap: '12px', height: '100%' }}>
+              {/* Desktop Actions */}
+              <div className="actions desktop-only" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                 {outputText && (
+                   <button 
+                     className={`action-btn outline ${showDiff ? 'active' : ''}`} 
+                     onClick={() => setShowDiff(!showDiff)}
+                     style={showDiff ? { background: 'var(--primary-faint)', borderColor: 'var(--primary)', color: 'var(--primary)', fontWeight: 600 } : {}}
+                   >
+                      {showDiff ? "Show Original" : "Compare Changes"}
+                   </button>
+                 )}
+                 <button className="action-btn primary" onClick={handleHumanize} disabled={isProcessing}>
+                    {isProcessing ? (
+                       <span className="flex items-center gap-2">
+                         <LoadingSpinner size="sm" color="white" />
+                         <span>Optimizing...</span>
+                       </span>
+                    ) : "Humanize Text"}
+                 </button>
+                 <button 
+                   className="action-btn ml-scan" 
+                   onClick={handleScan} 
+                   disabled={isMLDetecting || (!inputText && !outputText)}
+                   title="Check for AI"
+                 >
+                    {isMLDetecting ? "Checking..." : "🛡️ Check for AI"}
+                 </button>
+                 <button className="action-btn outline" onClick={handleExport}>Export</button>
+                 
+                 <div className="v-divider" />
+                 
+                 <Link href="/profile" className="profile-btn" title="Profile">
+                   <User size={18} />
+                 </Link>
+                 
+                 <button 
+                   className="logout-icon-btn" 
+                   onClick={() => {
+                      Cookies.remove('auth_token');
+                      window.location.href = '/';
+                   }}
+                   title="Log out"
+                 >
+                    <LogOut size={18} />
+                 </button>
+              </div>
               
-              <div className="v-divider" />
-              
-              <Link href="/profile" className="profile-btn" title="Profile">
-                <User size={18} />
-              </Link>
-              
-              <button 
-                className="logout-icon-btn" 
-                onClick={() => {
-                   Cookies.remove('auth_token');
-                   window.location.href = '/';
+              {/* Mobile Actions */}
+              <div 
+                className="actions mobile-only"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  paddingRight: 0
                 }}
-                title="Log out"
               >
-                 <LogOut size={18} />
-              </button>
+                 <button 
+                   className="mobile-scan-btn" 
+                   onClick={handleScan} 
+                   disabled={isMLDetecting || (!inputText && !outputText)}
+                 >
+                    🛡️
+                 </button>
+                 <Link href="/profile" className="mobile-profile-btn" title="Profile">
+                   <User size={18} />
+                 </Link>
+              </div>
            </div>
         </header>
+
+        {/* Mobile Progress Indicator (Dynamic Island Style) */}
+        <MobileProgressIndicator 
+          isProcessing={isProcessing || isMLDetecting}
+          message={isMLDetecting ? "Analyzing..." : "Humanizing..."}
+        />
 
         <div className="editors-grid">
           <Editor 
@@ -697,8 +793,34 @@ export default function Home() {
         />
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="mobile-bottom-nav">
+      {/* Mobile Floating Action Button */}
+      <MobileFloatingActions
+        onHumanize={handleHumanize}
+        onScan={handleScan}
+        isProcessing={isProcessing}
+        isScanning={isMLDetecting}
+        humanScore={humanScore}
+        hasOutput={!!outputText}
+      />
+
+      {/* Mobile Toast */}
+      <MobileToast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onClose={hideToast}
+      />
+
+      {/* Mobile Bottom Navigation - 3 Tab Morphing Dock */}
+      <div 
+        className="mobile-bottom-nav"
+        style={{
+          transform: isNavVisible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.95)',
+          opacity: isNavVisible ? 1 : 0,
+          pointerEvents: isNavVisible ? 'auto' : 'none',
+          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
         <button 
           className={`mobile-nav-btn ${mobileSettingsOpen ? 'active' : ''}`}
           onClick={() => {
@@ -706,15 +828,18 @@ export default function Home() {
             setMobileAnalysisOpen(false);
           }}
         >
-          <Settings2 size={20} />
+          <Settings2 size={24} />
           <span>Settings</span>
         </button>
         <button 
-          className="mobile-nav-btn primary"
-          onClick={handleHumanize}
-          disabled={isProcessing}
+          className="mobile-nav-btn"
+          onClick={() => {
+            setMobileSettingsOpen(true);
+            setMobileAnalysisOpen(false);
+          }}
         >
-          <span>{isProcessing ? "Processing..." : "Humanize"}</span>
+          <Sparkles size={24} />
+          <span>History</span>
         </button>
         <button 
           className={`mobile-nav-btn ${mobileAnalysisOpen ? 'active' : ''}`}
@@ -723,7 +848,7 @@ export default function Home() {
             setMobileSettingsOpen(false);
           }}
         >
-          <BarChart3 size={20} />
+          <BarChart3 size={24} />
           <span>Analysis</span>
         </button>
       </div>
@@ -748,6 +873,7 @@ export default function Home() {
               onRestore={handleRestore}
               onClearHistory={handleClearHistory}
               onDeleteHistory={handleDeleteHistoryItem}
+              className="mobile-visible"
             />
           </div>
         </>
@@ -774,6 +900,7 @@ export default function Home() {
               onPersonaChange={setPersona}
               detectionConfidence={detectionConfidence}
               detectionMethod={detectionMethod}
+              className="mobile-visible"
             />
           </div>
         </>
@@ -827,26 +954,58 @@ export default function Home() {
         }
 
         .workspace-header {
-          height: var(--nav-height);
+          height: 70px; /* Fixed height for better centering */
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 0 2rem;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          background: rgba(15, 23, 42, 0.4);
-          backdrop-filter: blur(10px);
+          padding: 0 24px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(12px);
+          position: sticky;
+          top: 0;
+          z-index: 50;
+        }
+
+        .brand {
+           display: flex !important;
+           flex-direction: row !important;
+           align-items: center !important;
+           gap: 12px !important;
+           text-decoration: none;
+           height: 100%;
+        }
+        
+        .brand-logo {
+           width: 32px;
+           height: 32px;
+           object-fit: contain;
+           flex-shrink: 0;
+           display: block; /* Removes inline gap quirks */
         }
 
         .brand h1 {
-          font-size: 1.1rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          color: var(--text-primary);
+          font-size: 1.25rem;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: white;
+          margin: 0;
+          padding: 0;
+          line-height: 1;
+          display: block;
+          white-space: nowrap; /* Prevent text wrapping */
         }
 
         .actions {
            display: flex;
-           gap: 1rem;
+           align-items: center;
+           gap: 12px;
+           height: 100%;
+        }
+
+        /* Desktop specific alignment */
+        .actions.desktop-only {
+          display: flex;
         }
 
         .action-btn {
@@ -961,8 +1120,15 @@ export default function Home() {
           animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        /* Ensure desktop actions are hidden on mobile */
+        @media (max-width: 1024px) {
+           .actions.desktop-only {
+              display: none !important;
+           }
+           
+           .workspace-header {
+              padding: 0 16px !important;
+           }
         }
 
         .loader span {
