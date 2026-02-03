@@ -157,9 +157,9 @@ pipeline = Pipeline([
             ('normalizer', PowerTransformer(method='yeo-johnson')) 
         ]))
     ], transformer_weights={
-        'word_tfidf': 1.0,
-        'char_tfidf': 1.0,
-        'stylometry': 2.5 
+        'word_tfidf': 1.2, # Slightly boost exact phrase matching
+        'char_tfidf': 1.5, # Boost subword patterns (strong against AI)
+        'stylometry': 1.5  # Reduce slightly so it doesn't override clear AI signals
     })),
     
     # Regression Output

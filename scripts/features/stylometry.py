@@ -30,8 +30,12 @@ class StylometryExtractor(BaseEstimator, TransformerMixin):
         n_sentences = len(sentences)
         
         # Abort on extremely short text to prevent noise
+        # CRITICAL FIX: Don't return 0.0 (which the model thinks is "AI").
+        # Return neutral values or typical "Human" averages to force uncertainty.
         if n_words < 5:
-            return [0.0] * 5
+            # Return [Avg_Rhythm, Avg_Stop, Avg_Entropy, Avg_TTR, Avg_Start, Avg_EmDash, Avg_Spec]
+            return [1.0, 0.45, 0.0, 0.8, 2.0, 0.0, 0.0]        
+
 
         # 1. Sentence Length Variance (Rhythm)
         # LLMs are suspiciously consistent. Humans drift.
@@ -70,13 +74,22 @@ class StylometryExtractor(BaseEstimator, TransformerMixin):
         feat_ttr = np.mean(ttrs) if ttrs else 0.0
         
         # 5. Sentence Start Variance (Coherence/Fatigue Trace)
-        # Measures diversity of how sentences begin (by first word length).
-        # Humans vary; AI often defaults to "The", "In", "It" (short) or transition words (long).
         first_words = [s.split()[0] for s in sentences if s]
         first_word_lens = [len(w) for w in first_words]
         feat_start_var = np.var(first_word_lens) if first_word_lens else 0.0
 
-        return [feat_rhythm, feat_stop_ratio, feat_entropy_var, feat_ttr, feat_start_var]
+        # 6. Em-Dash & Dramatic Punctuation (The "ChatGPT Drama" Metric)
+        # AI often abuses em-dashes (—) for structuring thought.
+        # Humans use them rarely or incorrectly.
+        em_dash_count = text.count('—') + text.count('--')
+        feat_em_dash = np.log1p(em_dash_count)
+
+        # 7. Structural Punctuation Density (Colons/Semicolons)
+        # AI uses semicolons correctly and frequently. Humans fear them.
+        structural_punct = text.count(';') + text.count(':')
+        feat_special_chars = structural_punct / (n_words + 1.0)
+
+        return [feat_rhythm, feat_stop_ratio, feat_entropy_var, feat_ttr, feat_start_var, feat_em_dash, feat_special_chars]
 
     def transform(self, X):
         print("Extracting Stylometric Features (v1.0.0)...")
