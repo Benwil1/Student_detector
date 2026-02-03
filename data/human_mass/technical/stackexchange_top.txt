@@ -1,0 +1,1 @@
+To iterate over a dictionary in Python and modify it simultaneously, you should work on a copy of the keys. Directly modifying a dictionary while iterating over it will raise a RuntimeError. The standard approach is to use the .items() method or create a list of the keys you want to remove. This ensures that the iterator's state remains consistent throughout the loop execution.

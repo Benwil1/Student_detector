@@ -16,6 +16,29 @@ const VOCAB_MAP: Record<string, string> = {
   "predominantly": "mostly", "prevalent": "common", "procedure": "step", "prohibit": "stop"
 };
 
+const RARE_VOCAB_CONTEXTS: Record<string, { options: string[], forbiddenFollowers?: string[] }> = {
+    "significant": { 
+        options: ["huge", "big", "main"], 
+        forbiddenFollowers: ["growth", "increase", "difference"] // "Killer growth" sounds too weird for academic
+    },
+    "increase": { options: ["bump", "jump", "spike"] },
+    "decrease": { options: ["drop", "dip", "crash"] },
+    "important": { options: ["key", "big", "main"] },
+    "very": { options: ["pretty", "kinda"] },
+    "good": { options: ["solid", "decent", "okay"] },
+    "bad": { options: ["rough", "messy", "janky"] },
+    "difficult": { options: ["tough", "hard", "tricky"] },
+    "interesting": { options: ["cool", "weird", "wild"] }
+};
+
+const EXTREME_VOCAB: Record<string, string[]> = {
+    "significant": ["crazy", "wild", "massive"],
+    "very": ["insanely", "super"],
+    "good": ["killer", "awesome"],
+    "bad": ["trash", "garbage"],
+    "interesting": ["insane", "baller"]
+};
+
 const STUDENT_PHRASES: Record<string, string> = {
   "according to": "as I checked in",
   "due to the fact that": "because",
@@ -114,6 +137,94 @@ function getBackendScore(text: string): number {
     if (complexitySlope < 30) baseHuman -= 20;
     
     return Math.max(0, baseHuman - aiScore);
+}
+
+/**
+ * NEW: Readability Score proxy
+ * Penalizes text that becomes too broken or ungrammatical.
+ */
+function calculateReadability(original: string, processed: string): number {
+    const origWords = original.split(/\s+/).length;
+    const procWords = processed.split(/\s+/).length;
+    
+    // 1. Length Deviation (Dropping too many articles/words makes sentence choppy)
+    const lengthRatio = procWords / origWords;
+    let score = 100;
+    
+    if (lengthRatio < 0.7) score -= 40; // Massive drop in words
+    else if (lengthRatio < 0.85) score -= 15;
+    
+    // 2. Fragment density (Too many full stops/capital letters in small space)
+    const sentenceCount = (processed.match(/[.!?]\s+[A-Z]/g) || []).length;
+    const density = sentenceCount / (procWords / 15); // normalized per 15 words
+    if (density > 2.5) score -= 20; // Too many tiny fragments
+    
+    // 3. ESL Error Density (Intentionally messy is good, but "glitchy" is bad)
+    const droppedArticles = original.match(/\b(the|a|an)\b/gi)?.length || 0;
+    const currentArticles = processed.match(/\b(the|a|an)\b/gi)?.length || 0;
+    const dropRate = 1 - (currentArticles / (droppedArticles || 1));
+    
+    if (dropRate > 0.4) score -= 30; // Dropping more than 40% of articles is unreadable
+    
+    return Math.max(0, score);
+}
+
+/**
+ * NEW: Sanity Pass
+ * Cleans up mechanical artifacts like ",." or redundant adverbs.
+ */
+function sanityPass(text: string): string {
+    let cleaned = text;
+    
+    // 1. Fix Punctuation Stutters
+    cleaned = cleaned.replace(/,\./g, ".");
+    cleaned = cleaned.replace(/,,/g, ",");
+    cleaned = cleaned.replace(/\.\./g, ".");
+    cleaned = cleaned.replace(/\s\./g, ".");
+    cleaned = cleaned.replace(/\s,/g, ",");
+     cleaned = cleaned.replace(/,\s\./g, ".");
+    
+    // 2. Global Phrase Deduplication (The "Anti-Stammer" Engine)
+    // Fixes "from my perspective, from my perspective" and "I mean, correct. I mean, correct."
+    const phrasesToDedupe = [
+        "from my perspective", "i think", "arguably", "technically", "essentially", 
+        "broadly speaking", "mostly", "basically", "literally", "i mean", "weirdly enough",
+        "honestly it reminds me of class", "actually", "in a sense"
+    ];
+    
+    phrasesToDedupe.forEach(phrase => {
+        const regex = new RegExp(`(${phrase},?\\s+){2,}`, "gi");
+        cleaned = cleaned.replace(regex, "$1");
+    });
+
+    // 3. Fix Double Adverbs / Redundancy per sentence
+    const sentences = cleaned.match(sentenceRegex) || [cleaned];
+    const deduplicated = sentences.map(s => {
+        const allFillers = [
+            "Surprisingly", "Sadly", "Luckily", "Weirdly", "Thankfully", "Ironically", "Honestly",
+            "Notably", "Interestingly", "Significantly", "Crucially", "Historically", "Conversely",
+            "Essentially", "Arguably", "Technically", "Practically"
+        ];
+        let count = 0;
+        let processed = s;
+        allFillers.forEach(f => {
+            const fRegex = new RegExp(`\\b${f},?\\b`, 'gi');
+            if (fRegex.test(processed)) {
+                count++;
+                if (count > 1) {
+                    // Keep the first one, remove the others in this sentence
+                    let first = true;
+                    processed = processed.replace(fRegex, (match) => {
+                        if (first) { first = false; return match; }
+                        return "";
+                    });
+                }
+            }
+        });
+        return processed;
+    });
+
+    return deduplicated.join(" ").replace(/\s+/g, " ").trim();
 }
 
 export async function POST(req: Request) {
@@ -233,10 +344,15 @@ export async function POST(req: Request) {
     // AI creates perfect English. ESL creates specific, logical errors.
     // This is the default mode now.
     
-    // A. ARTICLE DROPPING (Common in Slavic/Asian native speakers)
+    // A. ARTICLE DROPPING (Refined: prioritized 'the', avoid sentence starts)
     // "The car is fast" -> "Car is fast"
-    processedText = processedText.replace(/\b(the|a|an)\s+([a-z]+)\b/gi, (match: string, art: string, noun: string) => {
-         return Math.random() > 0.75 ? noun : match; 
+    processedText = processedText.replace(/(\s|^)\b(the|a|an)\s+([a-z]+)\b/gi, (match: string, space: string, art: string, noun: string) => {
+         const isStart = space === "";
+         const isThe = art.toLowerCase() === "the";
+         const threshold = isThe ? 0.88 : 0.95; // Only drop 'a/an' 5% of the time, 'the' 12%
+         
+         if (isStart) return match; // Never drop at start of sentence for readability
+         return Math.random() > threshold ? `${space}${noun}` : match; 
     });
 
     // B. PREPOSITION SWAPPING
@@ -277,27 +393,33 @@ export async function POST(req: Request) {
         processedText = processedText.replace(regex, simpleMap[complex]);
     });
 
-    // --- 3.5 PREDICTABILITY KILLER (Rare Synonym Injection) ---
-    // AI picks the most likely word. We pick the weird one.
-    // "Rapid growth" -> "Crazy growth" (Low probability token)
+    // --- 3.5 PREDICTABILITY KILLER (Context-Aware Rare Synonym Injection) ---
     if (config.vocab) {
-        const rareMap: Record<string, string[]> = {
-            "significant": ["huge", "crazy", "wild", "massive"],
-            "increase": ["bump", "jump", "spike"],
-            "decrease": ["drop", "dip", "crash"],
-            "important": ["key", "big", "main"],
-            "very": ["super", "pretty", "kinda", "insanely"],
-            "good": ["solid", "decent", "okay", "killer"],
-            "bad": ["rough", "messy", "janky", "trash"],
-            "difficult": ["tough", "hard", "tricky"],
-            "interesting": ["cool", "weird", "wild", "fun"]
-        };
+        Object.keys(RARE_VOCAB_CONTEXTS).forEach(word => {
+             // Lookahead to check next word
+             const regex = new RegExp(`\\b(${word})\\s+([a-z]+)\\b`, "gi");
+             processedText = processedText.replace(regex, (match: string, target: string, follower: string) => {
+                 const configObj = RARE_VOCAB_CONTEXTS[word];
+                 const isExtremePersona = config.intensity > 85 || persona === "lazy_student";
+                 
+                 // Check if follower is forbidden
+                 if (configObj.forbiddenFollowers?.includes(follower.toLowerCase())) {
+                     return match; // Keep original
+                 }
 
-        Object.keys(rareMap).forEach(word => {
-             const regex = new RegExp(`\\b${word}\\b`, "gi");
-             processedText = processedText.replace(regex, (match: string) => {
-                 const options = rareMap[word];
-                 return Math.random() > 0.5 ? options[Math.floor(Math.random() * options.length)] : match;
+                 if (Math.random() > 0.5) {
+                     let pool = [...configObj.options];
+                     if (isExtremePersona && EXTREME_VOCAB[word]) {
+                         pool = [...pool, ...EXTREME_VOCAB[word]];
+                     }
+                     const chosen = pool[Math.floor(Math.random() * pool.length)];
+                     // Preserve casing
+                     const replacement = target[0] === target[0].toUpperCase()
+                        ? chosen.charAt(0).toUpperCase() + chosen.slice(1)
+                        : chosen;
+                     return `${replacement} ${follower}`;
+                 }
+                 return match;
              });
         });
     }
@@ -357,13 +479,30 @@ export async function POST(req: Request) {
              return Math.random() > 0.6 ? `${actor} ${verb}${punct}` : match;
         });
 
-        // B. VOID PHRASE INJECTION (Guaranteed "Dirtying")
-        // Injects fluff words randomly between words.
-        // "The car is red." -> "The car is like, red."
+        // B. VOID PHRASE INJECTION (STABILIZED: No splitting Adjective-Noun pairs)
         if (config.intensity > 70) {
-            const voidWords = ["like,", "basically,", "literally,", "actually,", "sort of", "i guess", "honestly,"];
-            processedText = processedText.replace(/(\s\w+)\s/g, (match: string) => {
-                return Math.random() > 0.92 ? `${match} ${voidWords[Math.floor(Math.random() * voidWords.length)]} ` : match;
+            const casualFillers = ["like,", "basically,", "literally,", "actually,", "sort of", "i guess", "honestly,"];
+            const academicHedging = ["essentially,", "arguably,", "technically,", "practically,", "in a sense,", "fundamentally,"];
+            
+            const voidWords = (persona === "lazy_student" || config.intensity > 90) ? casualFillers : academicHedging;
+            const usedInParagraph = new Set();
+            
+            processedText = processedText.replace(/(\w+)\s/g, (match: string, word: string) => {
+                const cleanWord = word.trim().toLowerCase();
+                // PROTECTION: Do not inject after adjectives or technical terms
+                const adjectives = ["digital", "outdated", "previous", "manual", "automated", "consistent", "technical", "early", "lightweight", "original", "controlled", "consistent", "structured", "reliable"];
+                const technical = ["requirements", "smells", "processes", "syntax", "documents", "traceability", "review"];
+                
+                if (word.length < 5 || adjectives.includes(cleanWord) || technical.includes(cleanWord)) return match;
+                
+                if (Math.random() > 0.96) { // Higher stability
+                    const available = voidWords.filter(v => !usedInParagraph.has(v));
+                    if (available.length === 0) return match;
+                    const picked = available[Math.floor(Math.random() * available.length)];
+                    usedInParagraph.add(picked);
+                    return `${word} ${picked} `;
+                }
+                return match;
             });
         }
 
@@ -391,15 +530,72 @@ export async function POST(req: Request) {
              return `Compared to ${p2.trim()}, ${p1.toLowerCase().trim()}.`;
         });
 
-        // H. MOOD INJECTOR (Kill Neutral Tone) (INCREASED AGGRESSION)
-        const moods = ["Surprisingly,", "Sadly,", "Luckily,", "Weirdly,", "Thankfully,", "Ironially,", "Honestly,"];
+        // H. MOOD INJECTOR (REDUCED FREQUENCY: Avoid the "Adverb Trap")
+        const casualMoods = ["surprisingly,", "sadly,", "luckily,", "weirdly,", "thankfully,", "ironically,", "honestly,"];
+        const academicMoods = ["notably,", "interestingly,", "significantly,", "crucially,", "historically,", "conversely,"];
+        
+        const moods = (persona === "lazy_student" || config.intensity > 90) ? casualMoods : academicMoods;
+        const usedMoods = new Set();
+        
         processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match: string, p1: string, p2: string) => {
-             if (Math.random() > 0.4) {
-                 const mood = moods[Math.floor(Math.random() * moods.length)];
-                 return `${p1} ${mood} ${p2.toLowerCase()}`;
+             // DECREASED from 0.4 to 0.22 to avoid detectable patterns
+             if (Math.random() > 0.78) { 
+                 const available = moods.filter(m => !usedMoods.has(m));
+                 if (available.length === 0) return match;
+                 const mood = available[Math.floor(Math.random() * available.length)];
+                 const moodWithCap = mood.charAt(0).toUpperCase() + mood.slice(1);
+                 usedMoods.add(mood);
+                 return `${p1} ${moodWithCap} ${p2.toLowerCase()}`;
              }
              return match;
         });
+
+        // D. SKELETON SHUFFLER (Expanded: Structural Inversion)
+        if (config.structure || config.intensity > 40) {
+            // Pattern: [Statement] because [Reason].
+            processedText = processedText.replace(/([A-Z][^.!?]+)\s+because\s+([^.!?]+)(\.|\?|!)/g, (match: string, p1: string, p2: string, punct: string) => {
+                const threshold = config.intensity > 70 ? 0.3 : 0.6;
+                if (Math.random() > threshold) {
+                    return `Because ${p2.trim()}, ${p1.charAt(0).toLowerCase() + p1.slice(1).trim()}${punct}`;
+                }
+                return match;
+            });
+
+            // Pattern: [X] is a result of [Y]. -> [Y] led to [X].
+            processedText = processedText.replace(/([^.!?]+)\s+is\s+a\s+result\s+of\s+([^.!?]+)(\.|\?|!)/gi, (match: string, p1: string, p2: string, punct: string) => {
+                if (Math.random() > 0.5) {
+                    return `${p2.trim().charAt(0).toUpperCase() + p2.trim().slice(1)} resulted in ${p1.trim().toLowerCase()}${punct}`;
+                }
+                return match;
+            });
+
+            // Pattern: By [Action], [Result]. -> [Result] by [Action].
+            processedText = processedText.replace(/By\s+([^,]+),\s+([^.!?]+)(\.|\?|!)/g, (match: string, action: string, result: string, punct: string) => {
+                if (Math.random() > 0.6) {
+                    return `${result.charAt(0).toUpperCase() + result.slice(1).trim()} by ${action.trim()}${punct}`;
+                }
+                return match;
+            });
+        }
+
+        // --- NEW: RHYTHM JITTER (Length Variation) ---
+        // Forces "Burstiness" by merging or splitting sentences randomly
+        const sentences = processedText.match(/[A-Z][^.!?]*[.!?]/g) || [];
+        if (sentences.length > 3) {
+            for (let i = 0; i < sentences.length - 1; i++) {
+                const lenA = sentences[i].split(/\s+/).length;
+                const lenB = sentences[i+1].split(/\s+/).length;
+                
+                // If lengths are too consistent (The AI DNA), force a change
+                if (Math.abs(lenA - lenB) < 4 && Math.random() > 0.6) {
+                    // Merge sentences into one giant run-on
+                    sentences[i] = sentences[i].replace(/[.!?]$/, ", and");
+                    sentences[i+1] = sentences[i+1].trim().charAt(0).toLowerCase() + sentences[i+1].trim().slice(1);
+                    i++; // Skip the merged one
+                }
+            }
+            processedText = sentences.join(" ");
+        }
 
         // K. REDUNDANCY LOOPER (The "Human Inefficiency" Engine)
         // AI is efficient. Humans repeat themselves for emphasis.
@@ -415,11 +611,25 @@ export async function POST(req: Request) {
              return Math.random() > 0.5 ? `the ${noun2}'s ${noun1}` : match;
         });
         
-        // J. SUBJECTIVITY BREAKER (Mid-Sentence Interrupts)
-        // "The data shows that..." -> "The data, I think, shows that..."
-        const interrupts = [", I think,", ", like,", ", technically,", ", I guess,"];
-        processedText = processedText.replace(/\s+(is|are|was|were|shows|show|means)\s+/g, (match: string) => {
-             return Math.random() > 0.6 ? `${match.trim()}${interrupts[Math.floor(Math.random() * interrupts.length)]} ` : match;
+        // J. HEDGE STACKING (The "Inefficiency" Engine)
+        // AI is too concise. Humans pile on hedges when unsure.
+        // "This works." -> "This, in a sense, basically, technically works."
+        const interrupts = [", I think,", ", arguably,", ", technically,", ", in a sense,"];
+        const chosenInterrupts = (persona === "lazy_student" || config.intensity > 90) ? [", like,", ", I guess,", ", honestly,"] : interrupts;
+        
+        processedText = processedText.replace(/(\s+)(is|are|was|were|shows|show|means|argues|argued|claims|suggests)(\s+)/g, (match: string, s1: string, verb: string, s2: string) => {
+             // 15% chance to stack TWO hedges (The "Inefficient Human" special)
+             if (Math.random() > 0.85 && (config.intensity > 80 || persona === "academic")) {
+                 const h1 = chosenInterrupts[Math.floor(Math.random() * chosenInterrupts.length)];
+                 const h2 = chosenInterrupts[Math.floor(Math.random() * chosenInterrupts.length)];
+                 if (h1 !== h2) return `${s1}${verb}${h1} ${h2}${s2}`;
+             }
+             
+             const interrupt = chosenInterrupts[Math.floor(Math.random() * chosenInterrupts.length)];
+             if (verb.toLowerCase().startsWith("argu") && interrupt.includes("argu")) return match;
+             if (verb.toLowerCase().startsWith("think") && interrupt.includes("think")) return match;
+             
+             return Math.random() > 0.6 ? `${s1}${verb}${interrupt}${s2}` : match;
         });
 
         // E. PARAGRAPH EXPLOSION (Visual Structure Breaker)
@@ -427,13 +637,19 @@ export async function POST(req: Request) {
              return Math.random() > 0.65 ? `${p1}\n\n${p2}` : match;
         });
 
-        // F. PERSONAL ANECDOTE INJECTOR (The "Zombie" Logic Breaker)
-        // Injects random, irrelevant thoughts that break "Logical Coherence."
-        const personalThoughts = [
+        // F. PERSONAL ANECDOTE INJECTOR (Improved: Academic Tone)
+        const casualThoughts = [
             " honestly it reminds me of class.", " my professor mentioned this once.", 
             " weirdly enough.", " I was reading about this yesterday.", 
             " strangely.", " for real though."
         ];
+        const academicThoughts = [
+            " which is a point worth noting.", " as discussed in early lectures.", 
+            " in my view, this is key.", " something I've noted before.", 
+            " essentially.", " curiously."
+        ];
+        const personalThoughts = (persona === "lazy_student" || config.intensity > 85) ? casualThoughts : academicThoughts;
+        
         processedText = processedText.replace(/(\.)\s+([A-Z])/g, (match: string, p1: string, p2: string) => {
              // 25% chance to inject a personal thought between sentences
              if (Math.random() > 0.75) {
@@ -443,10 +659,12 @@ export async function POST(req: Request) {
              return match;
         });
 
-        // G. SENTENCE CHUNKING (The "Junk" Rhythm)
-        // Breaks flow into "Staccato" chunks.
-        // "I went there because it was fun." -> "I went there. It was fun."
-        processedText = processedText.replace(/\s+(because|and|but|so)\s+/g, (match: string) => {
+        // G. SENTENCE CHUNKING (Improved: Clause Detection)
+        // Only split if "and" is followed by a pronoun (likely a new clause)
+        processedText = processedText.replace(/\s+(because|but|so)\s+/g, (match: string) => {
+             return Math.random() > 0.6 ? ". " : match;
+        });
+        processedText = processedText.replace(/\s+and\s+(we|I|they|he|she|it|this|that|there)\s+/gi, (match: string) => {
              return Math.random() > 0.6 ? ". " : match;
         });
         
@@ -454,10 +672,20 @@ export async function POST(req: Request) {
         // "It was cold. It was disjointed." -> "It was cold. Disjointed."
         processedText = processedText.replace(/\.\s+(It|He|She|They|We)\s+(was|were|is|are)\s+/g, ". ");
 
-        // H. FRAME INJECTION (Psychological "Bookends")
-        if (!processedText.startsWith("So,")) {
-            const intros = ["So, looking at this,", "Honestly,", "Basically,", "If you think about it,", "I feel like,"];
-            const intro = intros[Math.floor(Math.random() * intros.length)];
+        // H. FRAME INJECTION (ANTI-STACKING: Check all known intros)
+        const allIntros = [
+            "So, looking at this,", "Honestly,", "Basically,", "If you think about it,", "I feel like,",
+            "In a sense, looking at this,", "Essentially,", "Broadly speaking,", "From my perspective,", "As I see it,",
+            "Notably,", "Interestingly,", "Interestingly enough,"
+        ];
+        
+        const hasExistingIntro = allIntros.some(intro => processedText.trim().startsWith(intro));
+
+        if (!hasExistingIntro) {
+            const casualIntros = ["So, looking at this,", "Honestly,", "Basically,", "If you think about it,", "I feel like,"];
+            const academicIntros = ["In a sense, looking at this,", "Essentially,", "Broadly speaking,", "From my perspective,", "As I see it,"];
+            const introPool = (persona === "lazy_student" || config.intensity > 90) ? casualIntros : academicIntros;
+            const intro = introPool[Math.floor(Math.random() * introPool.length)];
             const lowerStart = processedText.charAt(0).toLowerCase() + processedText.slice(1);
             processedText = `${intro} ${lowerStart}`;
         }
@@ -511,19 +739,17 @@ export async function POST(req: Request) {
     }
 
     // 6. Burstiness (Structure / Run-on sentences)
-    if (config.burst || config.intensity > 50) { // Lowered intensity threshold to ensure this runs more often
-        // AGGRESSIVE DASH REMOVAL
-        // AI loves em-dashes. Students hate them.
-        // Replace "—" (em-dash) and "–" (en-dash) with simple commas or new thoughts.
+    if (config.burst || config.intensity > 50) { 
         processedText = processedText.replace(/[—–]/g, ", ");
-        
-        // Cleanup potential double punctuation caused by the replacement
         processedText = processedText.replace(/,\s*,/g, ","); 
         
-        // Break long sentences or create run-ons
-        processedText = processedText.replace(/\.(?=\s[A-Z])/g, (match: string) => 
-            Math.random() > 0.8 ? ", and" : match
-        );
+        // FIXED: Lowercase the letter after converting period to ", and"
+        processedText = processedText.replace(/\.\s+([A-Z])/g, (match: string, letter: string) => {
+            if (Math.random() > 0.8) {
+                return `, and ${letter.toLowerCase()}`;
+            }
+            return match;
+        });
     }
 
     // 7. Lazy Typist (Typos)
@@ -627,20 +853,43 @@ export async function POST(req: Request) {
             });
         }
         
-        // CHECK SCORE
+        // CHECK SCORE & READABILITY
         const currentScore = getBackendScore(processedText);
+        // Apply Sanity Pass BEFORE calculating readability for the final candidate
+        const sanitized = sanityPass(processedText);
+        const currentReadability = calculateReadability(text, sanitized);
         
-        if (currentScore > bestScore) {
-            bestScore = currentScore;
-            bestText = processedText;
+        // Weighted Score: Score is most important, but readability must be > 60
+        // If readability is very low, we treat it as a bad attempt regardless of AI score
+        const combinedScore = currentReadability < 45 ? 0 : currentScore * (currentReadability / 100);
+        
+        if (combinedScore > bestScore) {
+            bestScore = combinedScore;
+            bestText = sanitized;
         }
         
-        // Optimized enough?
-        if (bestScore > 80) break; 
+        // Optimized enough? (Aim for high human score + decent readability)
+        if (currentScore > 85 && currentReadability > 70) break; 
     }
 
+    // --- FINAL DEDUPLICATION PASS ---
+    const seenFillers = new Set();
+    const deDuplicated = bestText.split(/([.!?])/).map((segment: string) => {
+        const fillers = ["I think", "arguably", "technically", "in a sense", "basically", "literally"];
+        let cleanedSegment = segment;
+        fillers.forEach(f => {
+            if (cleanedSegment.includes(f)) {
+                if (seenFillers.has(f)) {
+                    cleanedSegment = cleanedSegment.replace(new RegExp(`,?\\s?${f},?\\s?`, 'g'), " ");
+                }
+                seenFillers.add(f);
+            }
+        });
+        return cleanedSegment;
+    }).join("");
+
     return NextResponse.json({
-      text: bestText,
+      text: deDuplicated.replace(/\s+/g, " ").trim(),
       stats: {
         swappedWords: Math.floor(Math.random() * 10) + 5,
         structuralChanges: Math.floor(Math.random() * 5) + 2

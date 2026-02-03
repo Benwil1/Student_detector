@@ -1,0 +1,12 @@
+Node.js Event Loop (Technical Documentation Sample)
+When a Node.js process starts, it executes JavaScript code and initializes the Event Loop. If an asynchronous operation is encountered (e.g., timers, file I/O, network I/O), Node.js offloads it to the native system. Modern operating system kernels, being multi-threaded, handle these operations in parallel and notify Node.js upon completion. The Event Loop is then responsible for executing the asynchronous API callbacks associated with these completed operations.
+
+The event loop is what allows Node.js to perform non-blocking I/O operations — despite the fact that JavaScript is single-threaded — by offloading operations to the system kernel whenever possible. Since most modern kernels are multi-threaded, they can handle multiple operations executing in the background. When one of these operations completes, the kernel tells Node.js so that the appropriate callback may be added to the poll queue to eventually be executed.
+
+The Node.js Event Loop consists of several phases, each responsible for executing specific types of tasks in a cyclical order. While the exact terminology might vary slightly across explanations, the core phases generally include:
+1. Timers Phase: Executes callbacks scheduled by setTimeout() and setInterval() if their designated time has elapsed.
+2. Pending Callbacks Phase (I/O Callbacks Phase): Executes deferred callbacks and processes callbacks for I/O operations (e.g., file system, network requests) once those operations are complete.
+3. Idle, Prepare Phase: An internal phase used by Node.js primarily for optimizations and internal processes.
+4. Poll Phase: The most crucial phase, it retrieves new I/O events and executes their callbacks. If no I/O tasks are pending, it might enter an idle state.
+5. Check Phase: Executes callbacks scheduled by setImmediate(). These callbacks are run after the poll phase.
+6. Close Callbacks Phase: Handles callbacks for closed resources, such as sockets.

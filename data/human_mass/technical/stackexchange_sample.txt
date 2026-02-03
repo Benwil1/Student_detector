@@ -1,0 +1,7 @@
+The Event Loop is a design pattern that waits for and dispatches events or messages in a program. It forms the central control flow structure of many asynchronous programming environments, most notably Node.js and web browsers.
+
+In a typical event loop, the application enters a loop that periodically checks for new events in an event queue. When an event is detected, the loop dispatches a callback function or a message handler associated with that event. This allows the program to remain responsive even while performing time-consuming I/O operations, as these operations can be offloaded to the operating system and handled asynchronously.
+
+A common misunderstanding is that the event loop itself runs on multiple threads. In reality, the loop usually runs on a single main thread, while the underlying I/O operations are handled by the OS kernel or a thread pool. This model simplifies synchronization and state management by ensuring that only one piece of JavaScript code executes at a time. However, it also means that CPU-intensive tasks can "block" the event loop, preventing it from processing new events and making the application feel sluggish.
+
+To avoid blocking, developers are encouraged to use non-blocking APIs and break down long-running tasks into smaller chunks. This architecture is particularly efficient for I/O-heavy applications like web servers, where a single process can handle thousands of concurrent connections with minimal overhead.

@@ -38,6 +38,6 @@ export const config = {
      * 3. /_static (static files)
      * 4. /favicon.ico, /robots.txt, etc.
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }

@@ -4,7 +4,58 @@
  */
 
 import { detectAIHybrid } from '@/lib/hybrid-detector';
+import { spawn } from 'child_process';
 import { NextRequest, NextResponse } from 'next/server';
+import path from 'path';
+
+// Helper to run python script
+async function getPythonPrediction(text: string): Promise<number | null> {
+  return new Promise((resolve, reject) => {
+    // Determine path. Assuming process.cwd() is project root.
+    const scriptPath = path.join(process.cwd(), 'scripts', 'predict_single.py');
+    
+    // Check if script exists
+    // fs.access throws if not exists, but let's trust it's there based on workspace
+    
+    const python = spawn('python3', [scriptPath]);
+    
+    let output = '';
+    let error = '';
+
+    python.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    python.stderr.on('data', (data) => {
+      error += data.toString();
+    });
+
+    python.on('close', (code) => {
+      if (code !== 0) {
+        console.error('Python script error:', error);
+        resolve(null);
+        return;
+      }
+      
+      try {
+        // Output should be a float close to 0-1, e.g. "0.9500\n"
+        const prob = parseFloat(output.trim());
+        if (!isNaN(prob)) {
+          resolve(prob);
+        } else {
+          resolve(null);
+        }
+      } catch (e) {
+        console.error('Failed to parse python output:', e);
+        resolve(null);
+      }
+    });
+    
+    // Write text to stdin
+    python.stdin.write(text);
+    python.stdin.end();
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,8 +77,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Run hybrid detection
-    const result = await detectAIHybrid(text, forceML);
+    // Run heuristic detection (Baseline)
+    let result = await detectAIHybrid(text, forceML);
+
+    // If forceML is true, run the Python ML model
+    if (forceML) {
+      const mlProb = await getPythonPrediction(text);
+      
+      if (mlProb !== null) {
+        console.log(`ML Prediction: ${mlProb}`);
+        
+        // Convert to percentage
+        const mlAiScore = Math.round(mlProb * 100);
+        const mlHumanScore = 100 - mlAiScore;
+        
+        // Update the result with ML data
+        result.humanScore = mlHumanScore;
+        result.aiScore = mlAiScore;
+        result.confidence = 95; // ML is treated as high confidence
+        result.method = 'ml'; // Indicate ML was used
+        
+        // Set label based on ML
+        if (mlHumanScore > 90) result.label = "Human";
+        else if (mlHumanScore > 50) result.label = "Likely Human";
+        else if (mlHumanScore > 10) result.label = "Likely AI";
+        else result.label = "AI";
+
+        // Add extra details
+        (result as any).mlDetails = {
+           aiProbability: mlProb,
+           model: 'super_detector'
+        };
+      }
+    }
 
     return NextResponse.json({
       success: true,
