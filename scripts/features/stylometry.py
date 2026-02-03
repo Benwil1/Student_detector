@@ -33,8 +33,8 @@ class StylometryExtractor(BaseEstimator, TransformerMixin):
         # CRITICAL FIX: Don't return 0.0 (which the model thinks is "AI").
         # Return neutral values or typical "Human" averages to force uncertainty.
         if n_words < 5:
-            # Return [Avg_Rhythm, Avg_Stop, Avg_Entropy, Avg_TTR, Avg_Start, Avg_EmDash, Avg_Spec]
-            return [1.0, 0.45, 0.0, 0.8, 2.0, 0.0, 0.0]        
+            # Return [Avg_Rhythm, Avg_Stop, Avg_Entropy, Avg_TTR, Avg_Start, Avg_EmDash, Avg_Spec, Avg_Passive, Avg_Adv, Avg_Complex]
+            return [1.0, 0.45, 0.0, 0.8, 2.0, 0.0, 0.0, 0.0, 0.0, 0.2]        
 
 
         # 1. Sentence Length Variance (Rhythm)
@@ -89,7 +89,25 @@ class StylometryExtractor(BaseEstimator, TransformerMixin):
         structural_punct = text.count(';') + text.count(':')
         feat_special_chars = structural_punct / (n_words + 1.0)
 
-        return [feat_rhythm, feat_stop_ratio, feat_entropy_var, feat_ttr, feat_start_var, feat_em_dash, feat_special_chars]
+        # 8. Passive Voice Approximation (The "Objective Tone" Metric)
+        # AI creates distance using passive voice.
+        passives = re.findall(r'\b(am|is|are|was|were|be|been|being)\b\s+\w+ed\b', text.lower())
+        feat_passive = len(passives) / (n_sentences + 1.0)
+
+        # 9. Adverb Density (The "Flowery" Metric)
+        # "Significantly", "Crucially", "Undoubtedly" are AI hallmarks.
+        adverbs = [w for w in words if w.endswith('ly')]
+        feat_adverbs = len(adverbs) / (n_words + 1.0)
+
+        # 10. Complex Word Density (The "Lexical Fancy" Metric)
+        # AI has a vast vocabulary and uses it evenly. ESL Human uses it narrowly.
+        complex_words = [w for w in words if len(w) > 6]
+        feat_complex = len(complex_words) / (n_words + 1.0)
+
+        return [
+            feat_rhythm, feat_stop_ratio, feat_entropy_var, feat_ttr, feat_start_var, 
+            feat_em_dash, feat_special_chars, feat_passive, feat_adverbs, feat_complex
+        ]
 
     def transform(self, X):
         print("Extracting Stylometric Features (v1.0.0)...")
