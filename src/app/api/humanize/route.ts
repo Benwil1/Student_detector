@@ -327,11 +327,11 @@ export async function POST(req: Request) {
         const citationMap: string[] = [];
         
         // DYNAMIC INTENSITY ESCALATION
-        if (attempt > 10) config.intensity = Math.max(config.intensity, 80); // Enable Nuclear
+        if (attempt > 10) config.intensity = Math.max(config.intensity, 80); 
         if (attempt > 30) {
-            config.intensity = 100; // Enable Scorched Earth
-            config.typo = true;     // Force typos
-            config.burst = true;    // Force run-ons
+            // High Intensity, but DO NOT force typos/bad grammar unless requested.
+            // We rely on structural changes (void phrases, passive/active swap).
+            config.intensity = 100; 
         }
 
         // --- CITATION PROTECTION ---
@@ -787,16 +787,17 @@ export async function POST(req: Request) {
              processedText = processedText.replace(regex, narrative);
         });
 
-        // 2. "Fat Finger" Typo Injector (Increased to 12% for common words)
-        // Detectors HATE typos. It is the ultimate proof of humanity.
-        const crucialTypos: Record<string, string> = { 
-            "the": "teh", "and": "adn", "because": "cuz", "really": "rly",
-            "that": "taht", "with": "wth"
-        };
-        Object.entries(crucialTypos).forEach(([word, typo]) => {
-             const regex = new RegExp(`\\b${word}\\b`, "g");
-             processedText = processedText.replace(regex, (m: string) => Math.random() > 0.88 ? typo : m);
-        });
+        // 2. "Fat Finger" Typo Injector (Only if explicitly allowed)
+        if (config.typo) {
+            const crucialTypos: Record<string, string> = { 
+                "the": "teh", "and": "adn", "because": "cuz", "really": "rly",
+                "that": "taht", "with": "wth"
+            };
+            Object.entries(crucialTypos).forEach(([word, typo]) => {
+                 const regex = new RegExp(`\\b${word}\\b`, "g");
+                 processedText = processedText.replace(regex, (m: string) => Math.random() > 0.88 ? typo : m);
+            });
+        }
         
         // 3. Subjectivity Injection (Kill Objectivity)
         // "This is efficient." -> "I feel like this is efficient."
@@ -807,12 +808,16 @@ export async function POST(req: Request) {
 
         // 4. CLAUSE FUSION (The "Logic Lobotomy")
         // AI cannot write comma splices. Humans do it all the time.
+        // 4. CLAUSE FUSION (The "Logic Lobotomy")
+        // AI cannot write comma splices. Humans do it all the time.
         // "It was cold, so we left." -> "It was cold, we left."
-        // "He is smart. He studies hard." -> "He is smart, he studies hard."
-        processedText = processedText.replace(/(\w+)\.\s+([A-Z][a-z]+)/g, (match: string, p1: string, p2: string) => {
-             // 40% chance to fuse sentences with a comma (Comma Splice)
-             return Math.random() > 0.6 ? `${p1}, ${p2.toLowerCase()}` : match;
-        });
+        if (config.burst || config.typo) {
+            // "He is smart. He studies hard." -> "He is smart, he studies hard."
+            processedText = processedText.replace(/(\w+)\.\s+([A-Z][a-z]+)/g, (match: string, p1: string, p2: string) => {
+                 // 40% chance to fuse sentences with a comma (Comma Splice)
+                 return Math.random() > 0.6 ? `${p1}, ${p2.toLowerCase()}` : match;
+            });
+        }
 
         // 5. Anti-Perfection Fragmenter
         // "However, the data is valid." -> "The data though? Valid."
