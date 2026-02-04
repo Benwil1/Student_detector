@@ -694,7 +694,13 @@ export async function POST(req: Request) {
 
         if (!hasExistingIntro) {
             const casualIntros = ["So, looking at this,", "Honestly,", "Basically,", "If you think about it,", "I feel like,"];
-            const academicIntros = ["In a sense, looking at this,", "Essentially,", "Broadly speaking,", "From my perspective,", "As I see it,"];
+            
+            // LEARNED OPENERS (Extracted from User Human.csv)
+            const academicIntros = [
+                "For example,", "In this case,", "It is clear that,", "If you look at,", 
+                "I have found that,", "Of the many factors,", "In my view,", 
+                "Essentially,", "Broadly speaking,", "From my perspective,"
+            ];
             const introPool = (persona === "lazy_student" || config.intensity > 90) ? casualIntros : academicIntros;
             const intro = introPool[Math.floor(Math.random() * introPool.length)];
             const lowerStart = processedText.charAt(0).toLowerCase() + processedText.slice(1);
