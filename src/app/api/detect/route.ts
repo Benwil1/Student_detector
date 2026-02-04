@@ -69,68 +69,72 @@ export async function POST(request: NextRequest) {
 
     // If forceML is true (includes 'ml' and 'hybrid' modes), run the Python ML model
     if (forceML) {
-      const mlData = await getPythonPrediction(text);
-      
-      if (mlData) {
-        const mlProb = mlData.ai_score; // 0.0 to 1.0
-        console.log(`ML Prediction: ${mlProb}`);
-        
-        // Python returns Human Probability (0.0 = AI, 1.0 = Human)
-        const mlHumanScore = Math.round(mlProb * 100);
-        const mlAiScore = 100 - mlHumanScore;
-        
-        let finalHumanScore = mlHumanScore;
-        let fusionReason = null;
+      try {
+          const mlData = await getPythonPrediction(text);
+          
+          if (mlData) {
+            const mlProb = mlData.ai_score; // 0.0 to 1.0
+            console.log(`ML Prediction: ${mlProb}`);
+            
+            // Python returns Human Probability (0.0 = AI, 1.0 = Human)
+            const mlHumanScore = Math.round(mlProb * 100);
+            
+            let finalHumanScore = mlHumanScore;
+            let fusionReason = null;
 
-        // VETO SYSTEM (Active in 'ml' mode)
-        // If Heuristics sees a TRAP (< 35%) but ML is confident (> 75%), apply penalty.
-        if (mode === 'ml' && result.humanScore < 35 && mlHumanScore > 75) {
-            console.log("🛡️ Hybrid Fusion Triggered: Heuristic Veto applied.");
-            finalHumanScore = Math.round((mlHumanScore * 0.4) + (result.humanScore * 0.6));
-            fusionReason = "Structural logic mismatch (Penalty applied)";
-        }
+            // VETO SYSTEM (Active in 'ml' mode)
+            if (mode === 'ml' && result.humanScore < 35 && mlHumanScore > 75) {
+                console.log("🛡️ Hybrid Fusion Triggered: Heuristic Veto applied.");
+                finalHumanScore = Math.round((mlHumanScore * 0.4) + (result.humanScore * 0.6));
+                fusionReason = "Structural logic mismatch (Penalty applied)";
+            }
 
-        // EXPLICIT HYBRID MODE (Active in 'hybrid' mode)
-        // Always averages the scores for a balanced view.
-        if (mode === 'hybrid') {
-             console.log("🛡️ Explicit Hybrid Mode: Averaging scores.");
-             // STRICT 50/50 as requested
-             finalHumanScore = Math.round((mlHumanScore * 0.5) + (result.humanScore * 0.5));
-             fusionReason = "Hybrid Ensemble (50/50 Average)";
-        }
+            // EXPLICIT HYBRID MODE (Active in 'hybrid' mode)
+            // Always averages the scores for a balanced view.
+            if (mode === 'hybrid') {
+                console.log("🛡️ Explicit Hybrid Mode: Averaging scores.");
+                // STRICT 50/50 as requested
+                finalHumanScore = Math.round((mlHumanScore * 0.5) + (result.humanScore * 0.5));
+                fusionReason = "Hybrid Ensemble (50/50 Average)";
+            }
 
-        // Update the result with Final Hybrid data
-        result.humanScore = finalHumanScore;
-        result.aiScore = 100 - finalHumanScore;
-        result.confidence = mlData.confidence === 'HIGH' ? 95 : (mlData.confidence === 'MEDIUM' ? 85 : 50);
-        (result as any).method = 'hybrid'; 
-        
-        // Set label based on Final Score
-        if (finalHumanScore > 90) result.label = "Human";
-        else if (finalHumanScore > 50) result.label = "Likely Human";
-        else if (finalHumanScore > 10) result.label = "Likely AI";
-        else result.label = "AI";
+            // Update the result with Final Hybrid data
+            result.humanScore = finalHumanScore;
+            result.aiScore = 100 - finalHumanScore;
+            result.confidence = mlData.confidence === 'HIGH' ? 95 : (mlData.confidence === 'MEDIUM' ? 85 : 50);
+            (result as any).method = 'hybrid'; 
+            
+            // Set label based on Final Score
+            if (finalHumanScore > 90) result.label = "Human";
+            else if (finalHumanScore > 50) result.label = "Likely Human";
+            else if (finalHumanScore > 10) result.label = "Likely AI";
+            else result.label = "AI";
 
-        // KEY: Overwrite Heuristic Signals with Trained Model Signals so Dashboard updates!
-        if (mlData.mlDetails) {
-            result.surfaceSignals = {
-                perplexity: mlData.mlDetails.perplexity || 0,
-                burstiness: mlData.mlDetails.burstiness || 0,
-                entropy: mlData.mlDetails.entropy || 0
-            };
-            result.structuralSignals = {
-                 ...result.structuralSignals, 
-                 symmetry: mlData.mlDetails.symmetry || 80,
-                 planning: mlData.mlDetails.planning || 0.8,
-                 complexitySlope: mlData.mlDetails.complexitySlope || result.structuralSignals.complexitySlope,
-                 semanticDrift: mlData.mlDetails.semanticDrift || result.structuralSignals.semanticDrift,
-                 genre: mlData.mlDetails.genre || result.structuralSignals.genre
-            };
-            (result as any).mlDetails = {
-                ...mlData.mlDetails,
-                fusionReason: fusionReason
-            };
-        }
+            // KEY: Overwrite Heuristic Signals with Trained Model Signals so Dashboard updates!
+            if (mlData.mlDetails) {
+                result.surfaceSignals = {
+                    perplexity: mlData.mlDetails.perplexity || 0,
+                    burstiness: mlData.mlDetails.burstiness || 0,
+                    entropy: mlData.mlDetails.entropy || 0
+                };
+                result.structuralSignals = {
+                    ...result.structuralSignals, 
+                    symmetry: mlData.mlDetails.symmetry || 80,
+                    planning: mlData.mlDetails.planning || 0.8,
+                    complexitySlope: mlData.mlDetails.complexitySlope || result.structuralSignals.complexitySlope,
+                    semanticDrift: mlData.mlDetails.semanticDrift || result.structuralSignals.semanticDrift,
+                    genre: mlData.mlDetails.genre || result.structuralSignals.genre
+                };
+                (result as any).mlDetails = {
+                    ...mlData.mlDetails,
+                    fusionReason: fusionReason
+                };
+            }
+          }
+      } catch (mlErr) {
+          console.error("❌ ML Prediction Failed:", mlErr);
+          // Fallback is automatic (result remains Heuristic)
+          (result as any).mlError = "Trained model unavailable (using Fast Mode)";
       }
     }
 
@@ -141,8 +145,13 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Detection API error:', error);
-    return NextResponse.json({ error: 'Detection failed', success: false }, { status: 500 });
+    console.error('Detection API Handler error:', error);
+    // Return a safe fallback instead of 500 HTML
+    return NextResponse.json({ 
+        success: false, 
+        error: "Detection Failed",
+        fallback: true 
+    }, { status: 200 }); // Return 200 with error data to prevent parser crash
   }
 }
 
