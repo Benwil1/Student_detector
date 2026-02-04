@@ -53,7 +53,12 @@ async function calibrateAI() {
         const files = fs.readdirSync(dir).filter(f => f.endsWith('.txt'));
         if (files.length === 0) continue;
 
-        const metrics = { mtld: [], burstiness: [], planningEntropy: [], clauseVar: [] };
+        const metrics = { 
+            mtld: [] as number[], 
+            burstiness: [] as number[], 
+            planningEntropy: [] as number[], 
+            clauseVar: [] as number[] 
+        };
 
         for (const file of files) {
             const text = fs.readFileSync(path.join(dir, file), 'utf8');
