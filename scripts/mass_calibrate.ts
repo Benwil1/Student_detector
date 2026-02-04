@@ -56,7 +56,12 @@ async function runMassCalibration() {
 
         console.log(`Processing Genre: ${genre} (${files.length} sources)`);
         
-        const metrics = { mtld: [], burstiness: [], planningEntropy: [], clauseVar: [] };
+        const metrics = { 
+            mtld: [] as number[], 
+            burstiness: [] as number[], 
+            planningEntropy: [] as number[], 
+            clauseVar: [] as number[] 
+        };
 
         for (const file of files) {
             const text = fs.readFileSync(path.join(dir, file), 'utf8');
