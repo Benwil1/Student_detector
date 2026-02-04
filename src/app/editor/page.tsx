@@ -948,9 +948,7 @@ export default function Home() {
            <div className="loader">
               <div className="spinner" />
               <span>Running ML Detection...</span>
-              <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.5rem' }}>
-                Using RoBERTa AI Detector
-              </p>
+
            </div>
         </div>
       )}
