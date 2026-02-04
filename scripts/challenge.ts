@@ -1,4 +1,4 @@
-import { calculateMetrics, calculateHumanScore } from '../src/lib/detector';
+import { calculateHumanScore, calculateMetrics } from '../src/lib/detector';
 
 /**
  * ADVERSARIAL CHALLENGE & WEIGHT OPTIMIZATION SUITE
@@ -46,4 +46,4 @@ function runChallenge() {
 }
 
 runChallenge();
- Joseph.
+
