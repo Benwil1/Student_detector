@@ -1,0 +1,11 @@
+{
+  "name": "optimized_adversarial",
+  "intensity": 85,
+  "vocab": true,
+  "grammar": true,
+  "structure": true,
+  "burst": true,
+  "fluff": false,
+  "typo": false,
+  "simplify": false
+}
