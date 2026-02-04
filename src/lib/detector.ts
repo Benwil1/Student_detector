@@ -461,9 +461,23 @@ export function calculateMetrics(text: string): DetectionMetrics {
     let normalizedText = text.replace(/[\u200B-\u200D\uFEFF]/g, ''); 
     normalizedText = normalizedText.replace(/\s+/g, ' ').trim(); 
     const lowerText = normalizedText.toLowerCase();
+    const words = lowerText.split(/\s+/).filter(w => w.length > 0);
+
+    // 1. Edge Case: Short Text (under 20 words)
+    // Return Neutral Scored (50) to avoid false positives/negatives
+    if (words.length < 20) {
+        return { 
+            finalScore: 50, lexicalComplexity: 0, burstiness: 0, entropy: 0, 
+            symmetry: 0, planning: 0, consistency: 0, complexitySlope: 0, semanticDrift: 0,
+            genre: 'academic', accountability: 0,
+            structure: 0, transitions: 0, passiveVoice: 0, contractions: 0,
+            sentenceStarters: 0, punctuation: 0, perfectionPoint: 0
+        };
+    }
+    
+    // Continue with analysis
     const sentences = normalizedText.match(sentenceRegex) || [normalizedText];
     const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 20);
-    const words = lowerText.split(/\s+/).filter(w => w.length > 0);
     const genre = identifyGenre(text);
     const accountability = calculateAccountability(text);
     const genreKey = genre === 'formal_admin' ? 'academic' : genre;
@@ -595,6 +609,29 @@ export function calculateMetrics(text: string): DetectionMetrics {
     } else if (complexitySlope < 25 && burstValue < 4) {
         finalScore *= 0.8; 
     }
+
+    // 6. NARRATIVE AI TRAP (The "Perfect Story" Flow)
+    // AI simulates burstiness (sentence variance) but keeps the semantic flow too smooth.
+    // If Burstiness is High (> 8) but Semantic Drift is Moderate/Smooth (30-65), it's well-crafted AI.
+    // Real humans with High Burstiness usually have High Drift (> 80) (scatty) or Low Drift (< 40) (focused rant).
+    if (burstValue > 8 && semanticDrift < 65 && semanticDrift > 30) {
+       console.log("⚠️ Narrative Trap Triggered: Penalty 0.75x");
+       finalScore *= 0.75;
+    }
+
+    // 7. THESAURUS TRAP (Vocabulary Overload)
+    // AI avoids repetition perfectly (Drift 100) and uses rare words (MTLD > 130).
+    // Humans repeat themselves.
+    if (mtld > 115 && semanticDrift > 85) {
+        console.log("⚠️ Thesaurus Trap Triggered: Penalty 0.6x");
+        finalScore *= 0.6;
+    }
+
+    console.log("🔍 Heuristic Metrics:", {
+        mtld, burstValue, planningEntropy: planning.entropy,
+        semanticDrift, complexitySlope, uniformity,
+        finalScore
+    });
 
     // SHORT TEXT AI TRAP:
     if (text.length < 500 && uniformity > 40 && burstValue < 4) {

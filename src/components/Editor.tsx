@@ -127,7 +127,13 @@ export const Editor: React.FC<EditorProps> = ({
           
           <div className="header-actions">
            {onScan && (
-              <button className="action-btn scan-btn" onClick={onScan} title="Run ML Detection">
+              <button 
+                className={`action-btn scan-btn ${wordCount < 20 ? 'disabled' : ''}`} 
+                onClick={wordCount < 20 ? undefined : onScan} 
+                title={wordCount < 20 ? "Minimum 20 words required for detection" : "Run ML Detection"}
+                disabled={wordCount < 20}
+                style={wordCount < 20 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+              >
                 <Search size={14} />
               </button>
             )}

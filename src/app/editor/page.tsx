@@ -9,7 +9,7 @@ import { calculateHumanScore } from "@/lib/detector";
 import { detectAIHybrid } from "@/lib/hybrid-detector";
 import { diffWords } from "diff";
 import Cookies from "js-cookie";
-import { BarChart3, LogOut, Settings2, Share2, Sparkles, User, X } from "lucide-react";
+import { BarChart3, Cpu, LogOut, Settings2, Share2, Sparkles, User, X, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -45,6 +45,7 @@ export default function Home() {
   const [isMLDetecting, setIsMLDetecting] = useState(false);
   const [detectionConfidence, setDetectionConfidence] = useState<number | null>(null);
   const [detectionMethod, setDetectionMethod] = useState<'heuristic' | 'ml' | 'hybrid'>('heuristic');
+  const [scanMode, setScanMode] = useState<'heuristic' | 'ml' | 'hybrid'>('ml'); // User preference
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'processing'; visible: boolean }>({
     message: '',
     type: 'info',
@@ -181,7 +182,7 @@ export default function Home() {
            const scanRes = await fetch("/api/detect", {
                method: "POST",
                headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({ text: data.text, forceML: true })
+               body: JSON.stringify({ text: data.text, mode: scanMode })
            });
            const scanData = await scanRes.json();
            
@@ -205,7 +206,7 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
     }
-  }, [inputText, settings, persona, history]); // updated deps
+  }, [inputText, settings, persona, history, scanMode]); // updated deps
 
   const handleInputChange = useCallback((val: string) => {
     setInputText(val);
@@ -238,6 +239,7 @@ export default function Home() {
     }
     
     setIsMLDetecting(true);
+    console.log("🛡️ Scanning... Mode =", scanMode);
     try {
       // Call the hybrid detection API
       const response = await fetch("/api/detect", {
@@ -245,7 +247,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           text: textToScan,
-          forceML: true // Force ML detection for manual scan
+          mode: scanMode // Send selected mode
         }),
       });
       
@@ -290,7 +292,7 @@ export default function Home() {
     } finally {
       setIsMLDetecting(false);
     }
-  }, [inputText, outputText]);
+  }, [inputText, outputText, scanMode]);
 
   const handleExport = useCallback(() => {
     const textToExport = outputText || inputText;
@@ -685,6 +687,32 @@ export default function Home() {
                       {showDiff ? "Show Original" : "Compare Changes"}
                    </button>
                  )}
+                 <button 
+                    className="action-btn outline"
+                    onClick={() => {
+                        const modes: ('heuristic' | 'ml' | 'hybrid')[] = ['heuristic', 'ml', 'hybrid'];
+                        const next = modes[(modes.indexOf(scanMode) + 1) % modes.length];
+                        setScanMode(next);
+                    }}
+                    title={`Current Mode: ${scanMode.toUpperCase()}`}
+                    style={{ 
+                        fontSize: '11px', 
+                        padding: '6px 12px', 
+                        gap: '6px',
+                        background: scanMode !== 'heuristic' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                        borderColor: scanMode !== 'heuristic' ? '#3b82f6' : 'rgba(255,255,255,0.2)',
+                        color: scanMode !== 'heuristic' ? '#3b82f6' : '#94a3b8'
+                    }}
+                 >
+                    {scanMode === 'heuristic' && <Zap size={14} />}
+                    {scanMode === 'ml' && <Cpu size={14} />}
+                    {scanMode === 'hybrid' && <Sparkles size={14} />}
+                    
+                    {scanMode === 'heuristic' && "Fast Mode"}
+                    {scanMode === 'ml' && "Trained Model"}
+                    {scanMode === 'hybrid' && "Hybrid Pro"}
+                 </button>
+
                  <button className="action-btn primary" onClick={handleHumanize} disabled={isProcessing}>
                     {isProcessing ? (
                        <span className="flex items-center gap-2">

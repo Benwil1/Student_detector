@@ -1,18 +1,22 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import os
 
 import os
 import joblib
 import sys
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 
-# Add root path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from scripts.features.stylometry import StylometryExtractor
 
-STRESS_DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'stress_tests')
-ARTIFACTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'artifacts')
+
+
+from scripts.features_stylometry import StylometryExtractor
+
+STRESS_DATA_DIR = os.path.join(os.path.dirname(__file__), 'stress_tests')
+ARTIFACTS_DIR = os.path.join(os.path.dirname(__file__), 'artifacts')
 
 class StressTester:
     def __init__(self):

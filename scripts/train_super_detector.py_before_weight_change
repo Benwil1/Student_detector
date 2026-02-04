@@ -94,7 +94,7 @@ ai_data = ai_data.dropna()
 print(f"\nTotal AI Samples: {len(ai_data)}")
 print(f"Total Human Samples: {len(human_data)}")
 
-MAX_TRAIN_SAMPLES = 50000 
+MAX_TRAIN_SAMPLES = 25000 
 n_balance = min(len(ai_data), len(human_data), MAX_TRAIN_SAMPLES)
 
 print(f"Balancing to {n_balance} samples per class (Fast Mode)...")

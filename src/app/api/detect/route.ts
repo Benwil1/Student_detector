@@ -9,26 +9,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 
 // Helper to run python script
-async function getPythonPrediction(text: string): Promise<number | null> {
+async function getPythonPrediction(text: string): Promise<any | null> {
   return new Promise((resolve, reject) => {
-    // Determine path. Assuming process.cwd() is project root.
-    const scriptPath = path.join(process.cwd(), 'scripts', 'predict_single.py');
-    
-    // Check if script exists
-    // fs.access throws if not exists, but let's trust it's there based on workspace
-    
-    const python = spawn('python3', [scriptPath]);
+    const scriptPath = path.join(process.cwd(), 'scripts', 'api', 'predict.py');
+    const python = spawn('python3', [scriptPath, text]);
     
     let output = '';
     let error = '';
 
-    python.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    python.stderr.on('data', (data) => {
-      error += data.toString();
-    });
+    python.stdout.on('data', (data) => output += data.toString());
+    python.stderr.on('data', (data) => error += data.toString());
 
     python.on('close', (code) => {
       if (code !== 0) {
@@ -38,76 +28,109 @@ async function getPythonPrediction(text: string): Promise<number | null> {
       }
       
       try {
-        // Output should be a float close to 0-1, e.g. "0.9500\n"
-        const prob = parseFloat(output.trim());
-        if (!isNaN(prob)) {
-          resolve(prob);
+        let jsonStr = output.trim();
+        jsonStr = jsonStr.replace(/'/g, '"')
+                         .replace(/\bNone\b/g, 'null')
+                         .replace(/\bTrue\b/g, 'true')
+                         .replace(/\bFalse\b/g, 'false');
+        
+        const res = JSON.parse(jsonStr);
+        if (res && res.human_score !== undefined) {
+           resolve(res);
         } else {
-          resolve(null);
+           resolve(null);
         }
       } catch (e) {
-        console.error('Failed to parse python output:', e);
+        console.error('Failed to parse python output:', e, output);
         resolve(null);
       }
     });
-    
-    // Write text to stdin
-    python.stdin.write(text);
-    python.stdin.end();
   });
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, forceML = false } = body;
+    let { text, forceML = false, mode = 'heuristic' } = body;
+
+    // Legacy support / Interop
+    if (forceML && mode === 'heuristic') mode = 'ml';
+    if (mode === 'hybrid') forceML = true; 
+    if (mode === 'ml') forceML = true; // Fix: Enable ML for 'ml' mode 
 
     // Validate input
     if (!text || typeof text !== 'string') {
-      return NextResponse.json(
-        { error: 'Text is required and must be a string' },
-        { status: 400 }
-      );
+        return NextResponse.json({ error: 'Text required' }, { status: 400 });
     }
-
-    if (text.trim().length < 10) {
-      return NextResponse.json(
-        { error: 'Text must be at least 10 characters long' },
-        { status: 400 }
-      );
-    }
+    if (text.trim().length < 10) return NextResponse.json({ error: 'Text too short' }, { status: 400 });
 
     // Run heuristic detection (Baseline)
     let result = await detectAIHybrid(text, forceML);
 
-    // If forceML is true, run the Python ML model
+    // If forceML is true (includes 'ml' and 'hybrid' modes), run the Python ML model
     if (forceML) {
-      const mlProb = await getPythonPrediction(text);
+      const mlData = await getPythonPrediction(text);
       
-      if (mlProb !== null) {
+      if (mlData) {
+        const mlProb = mlData.ai_score; // 0.0 to 1.0
         console.log(`ML Prediction: ${mlProb}`);
         
-        // Convert to percentage
-        const mlAiScore = Math.round(mlProb * 100);
-        const mlHumanScore = 100 - mlAiScore;
+        // Python returns Human Probability (0.0 = AI, 1.0 = Human)
+        const mlHumanScore = Math.round(mlProb * 100);
+        const mlAiScore = 100 - mlHumanScore;
         
-        // Update the result with ML data
-        result.humanScore = mlHumanScore;
-        result.aiScore = mlAiScore;
-        result.confidence = 95; // ML is treated as high confidence
-        result.method = 'ml'; // Indicate ML was used
+        let finalHumanScore = mlHumanScore;
+        let fusionReason = null;
+
+        // VETO SYSTEM (Active in 'ml' mode)
+        // If Heuristics sees a TRAP (< 35%) but ML is confident (> 75%), apply penalty.
+        if (mode === 'ml' && result.humanScore < 35 && mlHumanScore > 75) {
+            console.log("🛡️ Hybrid Fusion Triggered: Heuristic Veto applied.");
+            finalHumanScore = Math.round((mlHumanScore * 0.4) + (result.humanScore * 0.6));
+            fusionReason = "Structural logic mismatch (Penalty applied)";
+        }
+
+        // EXPLICIT HYBRID MODE (Active in 'hybrid' mode)
+        // Always averages the scores for a balanced view.
+        if (mode === 'hybrid') {
+             console.log("🛡️ Explicit Hybrid Mode: Averaging scores.");
+             // STRICT 50/50 as requested
+             finalHumanScore = Math.round((mlHumanScore * 0.5) + (result.humanScore * 0.5));
+             fusionReason = "Hybrid Ensemble (50/50 Average)";
+        }
+
+        // Update the result with Final Hybrid data
+        result.humanScore = finalHumanScore;
+        result.aiScore = 100 - finalHumanScore;
+        result.confidence = mlData.confidence === 'HIGH' ? 95 : (mlData.confidence === 'MEDIUM' ? 85 : 50);
+        (result as any).method = 'hybrid'; 
         
-        // Set label based on ML
-        if (mlHumanScore > 90) result.label = "Human";
-        else if (mlHumanScore > 50) result.label = "Likely Human";
-        else if (mlHumanScore > 10) result.label = "Likely AI";
+        // Set label based on Final Score
+        if (finalHumanScore > 90) result.label = "Human";
+        else if (finalHumanScore > 50) result.label = "Likely Human";
+        else if (finalHumanScore > 10) result.label = "Likely AI";
         else result.label = "AI";
 
-        // Add extra details
-        (result as any).mlDetails = {
-           aiProbability: mlProb,
-           model: 'super_detector'
-        };
+        // KEY: Overwrite Heuristic Signals with Trained Model Signals so Dashboard updates!
+        if (mlData.mlDetails) {
+            result.surfaceSignals = {
+                perplexity: mlData.mlDetails.perplexity || 0,
+                burstiness: mlData.mlDetails.burstiness || 0,
+                entropy: mlData.mlDetails.entropy || 0
+            };
+            result.structuralSignals = {
+                 ...result.structuralSignals, 
+                 symmetry: mlData.mlDetails.symmetry || 80,
+                 planning: mlData.mlDetails.planning || 0.8,
+                 complexitySlope: mlData.mlDetails.complexitySlope || result.structuralSignals.complexitySlope,
+                 semanticDrift: mlData.mlDetails.semanticDrift || result.structuralSignals.semanticDrift,
+                 genre: mlData.mlDetails.genre || result.structuralSignals.genre
+            };
+            (result as any).mlDetails = {
+                ...mlData.mlDetails,
+                fusionReason: fusionReason
+            };
+        }
       }
     }
 
@@ -119,15 +142,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Detection API error:', error);
-    
-    return NextResponse.json(
-      { 
-        error: 'Detection failed', 
-        message: error.message,
-        success: false 
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Detection failed', success: false }, { status: 500 });
   }
 }
 

@@ -21,7 +21,6 @@ class CommercialDetector:
         self.pipeline = None
         self.calibrator = None
         self.metadata = None
-        self.extractor = StylometryExtractor()
         self._load_artifacts()
 
     def _load_artifacts(self):
@@ -101,17 +100,13 @@ class CommercialDetector:
             raw_val = self.pipeline.predict([text])[0]
             
             # 3. Calibration
-            # prob_score = self.calibrator.transform([raw_val])[0]
-            prob_score = float(raw_val) # Calibration removed per user request
-            
-            # Ensure 0-1 bounds just in case
-            prob_score = max(0.0, min(1.0, prob_score))
+            prob_score = self.calibrator.transform([raw_val])[0]
             
             # SHORT TEXT SAFETY DAMPING
             # If text is < 40 words, we don't trust extreme scores (0.0 or 1.0).
             # We pull them closer to 0.5 to force "Ambiguity" or "Low Confidence".
-            # if word_count < 40:
-            #     prob_score = (prob_score * 0.6) + 0.2  # Maps 0.0->0.2, 1.0->0.8 (Never 0 or 1)
+            if word_count < 40:
+                prob_score = (prob_score * 0.6) + 0.2  # Maps 0.0->0.2, 1.0->0.8 (Never 0 or 1)
             
             # 4. Domain-Adaptive Thresholding & Ambiguity
             # Map Probs to Classes using Domain Logic
@@ -140,30 +135,12 @@ class CommercialDetector:
             elif word_count < 100 and confidence == "HIGH":
                 confidence = "MEDIUM"
 
-            # 7. Extract Feature Details for UI
-            feats = self.extractor.get_feature_dict(text)
-
-            # 8. Legal/Product Safe Output
+            # 7. Legal/Product Safe Output
             return {
                 'human_score': float(prob_score),
                 'ai_score': 1.0 - float(prob_score),
                 'classification': classification,
                 'confidence': confidence,
-                'mlDetails': {
-                    'perplexity': feats['entropy'] * 10, # Scale up for UI visibility
-                    'burstiness': feats['rhythm'] * 10,  # Scale for UI
-                    'entropy': feats['entropy'],
-                    'symmetry': 100 - (feats['stop_ratio'] * 100), # Inverse stopword? Placeholder
-                    'planning': feats['start_var'] / 10, # Normalize
-                    'complexitySlope': feats['complex'] * 100, 
-                    'semanticDrift': feats['ttr'] * 100,
-                    'genre': domain or 'general',
-                    'accountability': 0,
-                    'aiProbability': 1.0 - float(prob_score),
-                    'humanProbability': float(prob_score),
-                    'confidence': confidence,
-                    'modelUsed': 'Python (50k)'
-                },
                 'meta': {
                     'version': self.metadata.get('model_version'),
                     'domain_bias': domain,

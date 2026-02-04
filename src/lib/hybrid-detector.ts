@@ -60,7 +60,7 @@ export async function detectAIHybrid(
     category: finalScore > 65 ? 'human' : (finalScore < 35 ? 'ai' : 'mixed'),
     method: 'logic',
     surfaceSignals: { 
-      perplexity: heuristic.perplexity, 
+      perplexity: heuristic.lexicalComplexity, 
       burstiness: heuristic.burstiness, 
       entropy: heuristic.entropy 
     },
