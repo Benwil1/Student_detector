@@ -578,20 +578,31 @@ export async function POST(req: Request) {
             });
         }
 
-        // --- NEW: RHYTHM JITTER (Length Variation) ---
-        // Forces "Burstiness" by merging or splitting sentences randomly
+        // --- DATA-DRIVEN RHYTHM JITTER (Trained on Human.csv) ---
+        // Mean Length: 14 words | Std Dev: 17 words
+        // Strategy: Aggressively split long sentences (>30) and merge short ones (<10).
         const sentences = processedText.match(/[A-Z][^.!?]*[.!?]/g) || [];
         if (sentences.length > 3) {
             for (let i = 0; i < sentences.length - 1; i++) {
                 const lenA = sentences[i].split(/\s+/).length;
-                const lenB = sentences[i+1].split(/\s+/).length;
                 
-                // If lengths are too consistent (The AI DNA), force a change
-                if (Math.abs(lenA - lenB) < 4 && Math.random() > 0.6) {
-                    // Merge sentences into one giant run-on
-                    sentences[i] = sentences[i].replace(/[.!?]$/, ", and");
-                    sentences[i+1] = sentences[i+1].trim().charAt(0).toLowerCase() + sentences[i+1].trim().slice(1);
-                    i++; // Skip the merged one
+                // 1. SPLIT LONG SENTENCES (AI writes ~25 words. Humans write ~14).
+                if (lenA > 30 && Math.random() > 0.4) {
+                    // Try to split at " and " or " but "
+                    // We simply replace the first occurrence to break the flow
+                    sentences[i] = sentences[i].replace(/,?\s+(and|but|which)\s+/, ". ");
+                }
+
+                // 2. MERGE SHORT SENTENCES (To mimic Human Burstiness)
+                if (i < sentences.length - 1) {
+                    const lenB = sentences[i+1].split(/\s+/).length;
+                    
+                    // If combined length is close to Human Mean (14-25), merge them!
+                    if ((lenA + lenB) < 25 && Math.random() > 0.5) {
+                        sentences[i] = sentences[i].replace(/[.!?]$/, ", and");
+                        sentences[i+1] = sentences[i+1].trim().charAt(0).toLowerCase() + sentences[i+1].trim().slice(1);
+                        i++; 
+                    }
                 }
             }
             processedText = sentences.join(" ");
